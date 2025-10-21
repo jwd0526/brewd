@@ -18,5 +18,4 @@ Ideas/planning for brewd
 
 ## MVP Features
 
-1. Centralized storage (DB) for coffees.
-2. User favorite lists/recommendations
+1. Create user functionality (login UI and backend authentication)
