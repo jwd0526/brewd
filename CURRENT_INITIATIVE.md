@@ -5,7 +5,7 @@ Ideas/planning for brewd
 ## Development Process (quasi-agile)
 
 1. Miro kanban
-2. Weekly refinement/progress (tennatively Mondays or as needed)
+2. Weekly refinement/progress (tentatively Mondays or as needed)
    1. Add items to backlog/talk about progress
    2. Talk about dev for the week
    3. Move items in kanban
