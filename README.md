@@ -4,8 +4,8 @@ A webapp for coffee enthusiasts to assist them in perfecting their brew, and hel
 
 ## Frontend
 
-**Directory**: [./frontend](Frontend Location)
+**Directory**: [Frontend Location](./frontend)
 
 ## Backend
 
-**Directory**: [./backend](Backend Location)
+**Directory**: [Backend Location](./backend)
