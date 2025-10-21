@@ -1,6 +1,7 @@
 FROM node:24-alpine
 
 # Install nginx and curl
+# hadolint ignore=DL3018
 RUN apk add --no-cache nginx curl
 
 # Change working directory
