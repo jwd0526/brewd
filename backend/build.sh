@@ -1,5 +1,8 @@
 #!/bin/bash
 
-go build ./..
+set -e
 
-docker build -t brewd-backend:0.1.0
+echo "Building Go backend..."
+go build -o bin/brewd-backend ./cmd/server
+
+echo "Backend build complete!"
