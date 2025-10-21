@@ -1,43 +1,43 @@
-# Binaries for Go
+# Environment variables
+.env
+.env.local
+
+# Frontend - Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/.cache/
+frontend/build/
+
+# Backend - Go
+backend/bin/
+backend/vendor/
 *.exe
 *.dll
 *.so
 *.dylib
-
-# Compiled object files
 *.o
-
-# Go module cache and build cache
-.cache/
 pkg/
-
-
-# Test results
 test.out
 
-# IDE-specific files (common for Go development)
-.idea/
-.vscode/
-
-# JavaScript and Map files compiled from TypeScript
-*.js
-*.js.map
-
-# Node modules
-node_modules/
-
-# TypeScript declaration files (if generated and not meant for version control)
-*.d.ts
-
-# Build output directories
-dist/
-build/
-
-# Log files
+# Logs
 *.log
 
-# IDE-specific files (common for TypeScript development)
-.vscode/
+# IDEs
 .idea/
+.vscode/
+*.swp
+*.swo
+*~
 
-DS_Store
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+*.cover
+
+# Docker volumes (if stored locally)
+*.log

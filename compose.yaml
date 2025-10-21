@@ -1,0 +1,78 @@
+services:
+  db:
+    container_name: brewd-db
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: brewd-db
+      POSTGRES_INITDB_ARGS: --lc-numeric=en_US.UTF-8
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - brewd-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d brewd-db"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+    networks:
+      - brewd-network
+  backend:
+    container_name: brewd-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: brewd-backend:0.1.0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_NAME: brewd-db
+      GIN_MODE: release
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - brewd-network
+  frontend:
+    container_name: brewd-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: brewd-frontend:0.1.0
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - brewd-network
+networks:
+  brewd-network:
+    driver: bridge
+
+volumes:
+  brewd-data:
