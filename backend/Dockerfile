@@ -10,7 +10,7 @@ COPY . .
 
 RUN go build -o bin/brewd-backend ./cmd/server
 
-FROM alpine:latest
+FROM alpine:3.22
 
 WORKDIR /
 
