@@ -26,27 +26,65 @@ A webapp for coffee enthusiasts to assist them in perfecting their brew, and hel
    cd brewd
    ```
 
-2. **Make the start script executable**
+2. **Install frontend dependencies**
+   ```bash
+   cd frontend
+   npm install
+   cd ..
+   ```
+
+3. **Make the start script executable**
    ```bash
    chmod +x start.sh
    ```
 
-3. **Run the application**
+4. **Run the application**
    ```bash
+   # Start both web and native (default)
    ./start.sh
+
+   # Or start specific mode
+   ./start.sh --web      # Web only (Next.js + Backend + DB)
+   ./start.sh --native   # Native dev (Backend + DB only)
+
+   # Clean build artifacts before starting
+   ./start.sh --clean --web
    ```
 
-This will:
-- Install web frontend dependencies
-- Build the Next.js application
-- Build the Go backend
-- Create Docker images
-- Start all services (web, backend, database)
+### Start Script Options
+
+The `./start.sh` script supports the following options:
+
+- **`./start.sh`** (no flags): Builds and starts both web and native environments
+- **`--web`**: Starts web frontend only (Next.js) with backend and database in Docker
+- **`--native`**: Starts backend and database in Docker for native app development (Expo runs locally)
+- **`--clean`**: Removes all build artifacts and Docker containers before starting
+  - Deletes `backend/bin/`
+  - Deletes `frontend/web/out/` and `frontend/web/.next/`
+  - Deletes `frontend/packages/*/dist/`
+  - Stops and removes all Docker containers and volumes
+
+### What Gets Built
+
+The start script will:
+1. Build shared packages (`frontend/packages/*`)
+2. Build the Go backend (`backend/bin/brewd-backend`)
+3. Build the appropriate frontend (web and/or native)
+4. Create Docker images (for web mode)
+5. Start services with Docker Compose
+
+### Access Points
 
 Once complete, access:
 - **Web Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080
 - **PostgreSQL**: localhost:5432
+
+For native app:
+```bash
+cd frontend/native
+npm start
+```
 
 ## Project Structure
 
@@ -85,6 +123,7 @@ npm start
 - React Native
 - Expo
 - TypeScript
+- NativeWind (Tailwind CSS v3 for React Native)
 - Shared packages from `frontend/packages/`
 
 ### Web App (Secondary) - `frontend/web/`
@@ -106,9 +145,10 @@ npm run build  # Outputs to out/
 ```
 
 **Tech Stack:**
-- Next.js (Static Export)
-- React
+- Next.js 16 (Static Export)
+- React 19
 - TypeScript
+- Tailwind CSS v4
 - Nginx (Docker deployment)
 
 ### Shared Packages - `frontend/packages/`
@@ -117,7 +157,19 @@ Code shared between native and web apps:
 - **api-client**: API communication layer
 - **types**: TypeScript type definitions
 - **utils**: Shared utility functions
-- **components**: Platform-agnostic React components
+- **components**: Platform-agnostic React components (styled with Tailwind CSS v4)
+
+### Styling
+
+The project uses Tailwind CSS for consistent styling across platforms:
+
+- **Web & Shared Components**: Tailwind CSS v4 with PostCSS
+  - `frontend/web/` uses `@tailwindcss/postcss`
+  - `frontend/packages/components/` uses `@tailwindcss/postcss`
+
+- **Native**: NativeWind v4 (Tailwind CSS v3 for React Native)
+  - `frontend/native/` uses NativeWind with Tailwind v3
+  - Provides Tailwind utilities via `className` prop on React Native components
 
 ## Backend
 
