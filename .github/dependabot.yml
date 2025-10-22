@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/backend"
     schedule:
-      interval: "daily"
+      interval: "weekly"
       time: "00:00"
     open-pull-requests-limit: 5
     labels:
@@ -18,7 +18,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "daily"
+      interval: "weekly"
       time: "00:00"
     open-pull-requests-limit: 5
     labels:
@@ -32,7 +32,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/backend"
     schedule:
-      interval: "daily"
+      interval: "weekly"
       time: "00:00"
     open-pull-requests-limit: 3
     labels:
@@ -45,7 +45,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/frontend"
     schedule:
-      interval: "daily"
+      interval: "weekly"
       time: "00:00"
     open-pull-requests-limit: 3
     labels:
@@ -58,7 +58,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
       time: "00:00"
     open-pull-requests-limit: 3
     labels:
