@@ -4,7 +4,9 @@ A webapp for coffee enthusiasts to assist them in perfecting their brew, and hel
 
 ## Architecture
 
-- **Frontend**: Next.js (Static Export) served by Nginx
+- **Frontend**:
+  - **Native** (Primary): React Native with Expo
+  - **Web** (Secondary): Next.js (Static Export) served by Nginx
 - **Backend**: Go with Gin framework
 - **Database**: PostgreSQL 15
 - **Infrastructure**: Docker & Docker Compose
@@ -35,20 +37,87 @@ A webapp for coffee enthusiasts to assist them in perfecting their brew, and hel
    ```
 
 This will:
-- Install frontend dependencies
+- Install web frontend dependencies
 - Build the Next.js application
 - Build the Go backend
 - Create Docker images
-- Start all services
+- Start all services (web, backend, database)
 
 Once complete, access:
-- **Frontend**: http://localhost:3000
+- **Web Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080
 - **PostgreSQL**: localhost:5432
 
+## Project Structure
+
+```
+brewd/
+├── backend/              # Go/Gin API server
+├── frontend/
+│   ├── native/          # React Native (Expo) - PRIMARY
+│   ├── web/             # Next.js static site - SECONDARY
+│   └── packages/        # Shared code between native/web
+│       ├── api-client/  # API client wrapper
+│       ├── types/       # Shared TypeScript types
+│       ├── utils/       # Shared utilities
+│       └── components/  # Shared React components
+├── compose.yaml         # Docker Compose config
+└── package.json         # Root workspace config
+```
+
 ## Frontend
 
-**Directory**: [Frontend Location](./frontend)
+The frontend is structured as a monorepo with npm workspaces:
+
+### Native App (Primary) - `frontend/native/`
+
+**React Native with Expo** - The primary development focus.
+
+**Development:**
+```bash
+npm run dev:native
+# or
+cd frontend/native
+npm start
+```
+
+**Tech Stack:**
+- React Native
+- Expo
+- TypeScript
+- Shared packages from `frontend/packages/`
+
+### Web App (Secondary) - `frontend/web/`
+
+**Next.js Static Export** - Afterthought, lower priority.
+
+**Development:**
+```bash
+npm run dev:web
+# or
+cd frontend/web
+npm run dev
+```
+
+**Production Build:**
+```bash
+cd frontend/web
+npm run build  # Outputs to out/
+```
+
+**Tech Stack:**
+- Next.js (Static Export)
+- React
+- TypeScript
+- Nginx (Docker deployment)
+
+### Shared Packages - `frontend/packages/`
+
+Code shared between native and web apps:
+- **api-client**: API communication layer
+- **types**: TypeScript type definitions
+- **utils**: Shared utility functions
+- **components**: Platform-agnostic React components
 
 ## Backend
 

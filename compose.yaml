@@ -4,8 +4,8 @@ services:
     image: postgres:15
     restart: unless-stopped
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: 
+      POSTGRES_PASSWORD: 
       POSTGRES_DB: brewd-db
       POSTGRES_INITDB_ARGS: --lc-numeric=en_US.UTF-8
       POSTGRES_HOST_AUTH_METHOD: trust
@@ -51,7 +51,7 @@ services:
   frontend:
     container_name: brewd-frontend
     build:
-      context: ./frontend
+      context: ./frontend/web
       dockerfile: Dockerfile
     image: brewd-frontend:0.1.0
     restart: unless-stopped
