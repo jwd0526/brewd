@@ -7,11 +7,13 @@ Monorepo for Brewd's frontend applications and shared code.
 ### Applications
 
 **Native (Primary)** - `./native/`
+
 - React Native with Expo
 - Primary development focus
 - iOS, Android, and web platforms
 
 **Web (Secondary)** - `./web/`
+
 - Next.js (Static Export)
 - Served by Nginx in Docker
 - Lower priority, afterthought
