@@ -1,8 +1,8 @@
-# Plan
+# Development Initiative
 
 Development process, planning, and current initiative
 
-## Development Process
+## Process
 We follow a lightweight agile workflow centered around a Miro kanban board and weekly sync meetings.
 
 ### Kanban Board
@@ -73,6 +73,6 @@ Users should be able to create an account, login/logout and update their user. T
 2. sqlc.yaml file for config
 3. ```sqlc compile && sqlc generate``` for query wrappers
 
-## Phase 2 Outline
+## Phase 2 Features
 
 TBD...
