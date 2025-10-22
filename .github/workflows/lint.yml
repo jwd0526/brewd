@@ -83,9 +83,13 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Run ESLint on all workspaces
-        working-directory: ./frontend
-        run: npm run lint --workspaces --if-present
+      - name: Run ESLint on native workspace
+        working-directory: ./frontend/native
+        run: npm run lint
+
+      - name: Run ESLint on web workspace
+        working-directory: ./frontend/web
+        run: npm run lint
 
   prettier:
     name: Auto-format Frontend Code
