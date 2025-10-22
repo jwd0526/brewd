@@ -2,13 +2,34 @@
 .env
 .env.local
 
-# Frontend - Next.js
-frontend/node_modules/
-frontend/.next/
-frontend/out/
-frontend/dist/
-frontend/.cache/
-frontend/build/
+# Root node_modules
+node_modules/
+
+# Frontend - Web (Next.js)
+frontend/web/node_modules/
+frontend/web/.next/
+frontend/web/out/
+frontend/web/dist/
+frontend/web/.cache/
+frontend/web/build/
+
+# Frontend - Native (React Native/Expo)
+frontend/native/node_modules/
+frontend/native/.expo/
+frontend/native/.expo-shared/
+frontend/native/dist/
+frontend/native/ios/
+frontend/native/android/
+frontend/native/*.jks
+frontend/native/*.p8
+frontend/native/*.p12
+frontend/native/*.key
+frontend/native/*.mobileprovision
+
+# Frontend - Shared Packages
+frontend/packages/*/node_modules/
+frontend/packages/*/dist/
+frontend/packages/*/build/
 
 # Backend - Go
 backend/bin/

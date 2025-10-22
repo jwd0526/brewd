@@ -1,28 +1,52 @@
-# Frontend 
+# Brewd Frontend
 
-Frontend README
+Monorepo for Brewd's frontend applications and shared code.
 
-## Docker
+## Architecture
 
-The `build.sh` script will:
-1. Install dependencies
-2. Build the Next.js app (outputs to `out/` directory)
-3. Build the Docker image
+### Applications
+
+**Native (Primary)** - `./native/`
+- React Native with Expo
+- Primary development focus
+- iOS, Android, and web platforms
+
+**Web (Secondary)** - `./web/`
+- Next.js (Static Export)
+- Served by Nginx in Docker
+- Lower priority, afterthought
+
+### Shared Packages - `./packages/`
+
+- **types** - Shared TypeScript type definitions
+- **utils** - Shared utility functions
+- **api-client** - API communication layer
+- **components** - Platform-agnostic React components
+
+## Development
 
 ```bash
-./build.sh
+# Install all dependencies (run from frontend/)
+npm install
+
+# Run native app
+npm run dev:native
+
+# Run web app
+npm run dev:web
+
+# Build shared packages
+npm run build:packages
 ```
 
-## Docker Details
+## Workspace Structure
 
-The Dockerfile:
-1. Uses `node:24-alpine` as base
-2. Copies the built `out/` directory to nginx
-3. Serves static files with nginx on port 3000
-4. Includes health check endpoint
+This is an npm workspace. Dependencies are hoisted to `frontend/node_modules/` except for React Native which requires local `native/node_modules/`.
 
-## Notes
+## Build Order
 
-- The app must be built as a static export (`output: 'export'`)
-- No server side features
-- All API calls will go to `NEXT_PUBLIC_API_URL`
+1. Shared packages (always built first)
+2. Native or Web (uses built packages)
+
+Enforced by `./packages/build-all.sh` which builds in dependency order:
+`types` → `utils` → `api-client` → `components`

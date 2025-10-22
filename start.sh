@@ -2,7 +2,51 @@
 
 set -e
 
-echo "Starting brewd..."
+# Parse arguments
+MODE=""
+
+print_usage() {
+    echo "Usage: ./start.sh [--web|--native]"
+    echo ""
+    echo "Options:"
+    echo "  --web       Start web frontend only (Next.js + Backend + DB)"
+    echo "  --native    Start native development only (Expo + Backend + DB)"
+    echo "  (none)      Start both web and native (default)"
+    echo ""
+    echo "If no option is provided, both environments are built"
+}
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --web)
+            MODE="web"
+            shift
+            ;;
+        --native)
+            MODE="native"
+            shift
+            ;;
+        -h|--help)
+            print_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            print_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Default to both if no mode specified
+if [ -z "$MODE" ]; then
+    MODE="both"
+fi
+
+echo "========================================="
+echo "Brewd - Starting in $MODE mode"
+echo "========================================="
 
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
@@ -10,44 +54,136 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Build Frontend
+# Step 1: Build shared packages (always required)
 echo ""
-echo "Step 1/4: Building Frontend..."
-cd ./frontend
-./build.sh
-cd ..
+echo "Step 1: Building shared packages..."
+cd ./frontend/packages
+./build-all.sh
+cd ../..
 
-# Build Backend
+# Step 2: Build Backend (always required)
 echo ""
-echo "Step 2/4: Building Backend..."
+echo "Step 2: Building Backend..."
 cd ./backend
 ./build.sh
 cd ..
 
-# Build Docker Images
-echo ""
-echo "Step 3/4: Building Docker images..."
-docker compose build
+if [ "$MODE" == "web" ]; then
+    # Web mode: Build web frontend and start Docker services
+    echo ""
+    echo "Step 3: Building Frontend (Web)..."
+    cd ./frontend/web
+    ./build.sh
+    cd ../..
 
-# Start Services
-echo ""
-echo "Step 4/4: Starting services with Docker Compose..."
-docker compose up -d
+    echo ""
+    echo "Step 4: Building Docker images..."
+    docker compose build
 
-# Wait for services to be healthy
-echo ""
-echo "Waiting for services to be healthy..."
-sleep 5
+    echo ""
+    echo "Step 5: Starting services with Docker Compose..."
+    docker compose up -d
 
-# Check service health
-echo ""
-echo "Service Status:"
-docker compose ps
+    # Wait for services to be healthy
+    echo ""
+    echo "Waiting for services to be healthy..."
+    sleep 5
 
-echo "Services:"
-echo "  - Frontend: http://localhost:3000"
-echo "  - Backend API: http://localhost:8080"
-echo "  - PostgreSQL: localhost:5432"
-echo ""
-echo "To view logs: docker compose logs -f"
-echo "To stop: docker compose down"
+    # Check service health
+    echo ""
+    echo "Service Status:"
+    docker compose ps
+
+    echo ""
+    echo "========================================="
+    echo "Brewd Web is running!"
+    echo "========================================="
+    echo ""
+    echo "Services:"
+    echo "  - Web Frontend: http://localhost:3000"
+    echo "  - Backend API: http://localhost:8080"
+    echo "  - PostgreSQL: localhost:5432"
+    echo ""
+    echo "To view logs: docker compose logs -f"
+    echo "To stop: docker compose down"
+    echo "========================================="
+
+elif [ "$MODE" == "native" ]; then
+    # Native mode: Start backend + DB in Docker, but run Expo dev server locally
+    echo ""
+    echo "Step 3: Starting Backend and Database..."
+    docker compose up -d db backend
+
+    # Wait for backend to be healthy
+    echo ""
+    echo "Waiting for backend to be healthy..."
+    sleep 5
+
+    echo ""
+    echo "========================================="
+    echo "Brewd Native Development Ready!"
+    echo "========================================="
+    echo ""
+    echo "Backend Services:"
+    echo "  - Backend API: http://localhost:8080"
+    echo "  - PostgreSQL: localhost:5432"
+    echo ""
+    echo "To start the native app:"
+    echo "  cd frontend/native"
+    echo "  npm start"
+    echo ""
+    echo "To view backend logs: docker compose logs -f backend"
+    echo "To stop backend: docker compose down"
+    echo "========================================="
+
+elif [ "$MODE" == "both" ]; then
+    # Both mode: Build web and prepare native, start all Docker services
+    echo ""
+    echo "Step 3: Building Frontend (Web)..."
+    cd ./frontend/web
+    ./build.sh
+    cd ../..
+
+    echo ""
+    echo "Step 4: Preparing Native environment..."
+    cd ./frontend/native
+    ./build.sh
+    cd ../..
+
+    echo ""
+    echo "Step 5: Building Docker images..."
+    docker compose build
+
+    echo ""
+    echo "Step 6: Starting services with Docker Compose..."
+    docker compose up -d
+
+    # Wait for services to be healthy
+    echo ""
+    echo "Waiting for services to be healthy..."
+    sleep 5
+
+    # Check service health
+    echo ""
+    echo "Service Status:"
+    docker compose ps
+
+    echo ""
+    echo "========================================="
+    echo "Brewd - All Environments Ready!"
+    echo "========================================="
+    echo ""
+    echo "Web Services:"
+    echo "  - Web Frontend: http://localhost:3000"
+    echo "  - Backend API: http://localhost:8080"
+    echo "  - PostgreSQL: localhost:5432"
+    echo ""
+    echo "Native Development:"
+    echo "  cd frontend/native"
+    echo "  npm start"
+    echo ""
+    echo "Commands:"
+    echo "  View logs: docker compose logs -f"
+    echo "  Stop all: docker compose down"
+    echo "========================================="
+fi
