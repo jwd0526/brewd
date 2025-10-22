@@ -20,4 +20,4 @@ RUN chmod +x /entrypoint.sh
 
 EXPOSE 3000
 
-CMD ["./entrypoint.sh"]
+CMD ["../entrypoint.sh"]
