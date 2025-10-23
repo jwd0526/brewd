@@ -52,26 +52,26 @@ Users should be able to create an account, login/logout and update their user. T
 
 #### Frontend
 
-1. Login screen/create account
-2. Navigation to an authenticated view on login (should have a logout button)
-3. Update password/email/username
-4. Loading components/state
+- [ ] Login screen/create account
+- [ ] Navigation to an authenticated view on login (should have a logout button)
+- [ ] Update password/email/username
+- [ ] Loading components/state
 
 #### API Layer
 
-1. Create users route: POST /api/users
-2. Modify user: PUT api/users/:id
-   1. Users designated by their ULID: [ULID Spec](https://github.com/oklog/ulid)
-3. Login route: POST /api/auth/login
-   1. JWT validation
-4. Logout route: POST /api/auth/logout
-   1. Removes token
+- [ ] Create users route: POST /api/users
+- [ ] Modify user: PUT api/users/:id
+  - [ ] Users designated by their ULID: [ULID Spec](https://github.com/oklog/ulid)
+- [ ] Login route: POST /api/auth/login
+  - [ ] JWT validation
+- [ ] Logout route: POST /api/auth/logout
+  - [ ] Removes token
 
 #### Database
 
-1. Define schema for user
-2. sqlc.yaml file for config
-3. ```sqlc compile && sqlc generate``` for query wrappers
+- [ ] Define schema for user
+- [ ] sqlc.yaml file for config
+- [ ] ```sqlc compile && sqlc generate``` for query wrappers
 
 ## Phase 2 Features
 
