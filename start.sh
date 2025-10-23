@@ -4,16 +4,55 @@ set -e
 
 # Parse arguments
 MODE=""
+CLEAN_MODE=false
 
 print_usage() {
-    echo "Usage: ./start.sh [--web|--native]"
+    echo "Usage: ./start.sh [--web|--native] [--clean]"
     echo ""
     echo "Options:"
     echo "  --web       Start web frontend only (Next.js + Backend + DB)"
     echo "  --native    Start native development only (Expo + Backend + DB)"
+    echo "  --clean     Remove all build artifacts and Docker containers before starting"
     echo "  (none)      Start both web and native (default)"
     echo ""
     echo "If no option is provided, both environments are built"
+}
+
+clean_all() {
+    echo "========================================="
+    echo "Cleaning build artifacts and containers"
+    echo "========================================="
+
+    # Stop and remove Docker containers and volumes
+    echo ""
+    echo "Stopping and removing Docker containers..."
+    docker compose down -v --remove-orphans 2>/dev/null || true
+
+    # Remove Docker images for this project
+    echo ""
+    echo "Removing Docker images..."
+    docker compose rm -f 2>/dev/null || true
+
+    # Clean backend
+    echo ""
+    echo "Cleaning backend build artifacts..."
+    rm -rf ./backend/bin
+
+    # Clean frontend web
+    echo ""
+    echo "Cleaning frontend web build artifacts..."
+    rm -rf ./frontend/web/out
+    rm -rf ./frontend/web/.next
+
+    # Clean frontend packages
+    echo ""
+    echo "Cleaning frontend packages build artifacts..."
+    rm -rf ./frontend/packages/*/dist
+
+    echo ""
+    echo "========================================="
+    echo "Clean complete!"
+    echo "========================================="
 }
 
 # Parse flags
@@ -25,6 +64,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --native)
             MODE="native"
+            shift
+            ;;
+        --clean)
+            CLEAN_MODE=true
             shift
             ;;
         -h|--help)
@@ -42,6 +85,12 @@ done
 # Default to both if no mode specified
 if [ -z "$MODE" ]; then
     MODE="both"
+fi
+
+# Run clean if requested
+if [ "$CLEAN_MODE" = true ]; then
+    clean_all
+    echo ""
 fi
 
 echo "========================================="

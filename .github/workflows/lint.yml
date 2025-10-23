@@ -10,16 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.24'
           cache-dependency-path: './backend/go.sum'
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
           working-directory: ./backend
@@ -32,12 +32,12 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.24'
           cache-dependency-path: './backend/go.sum'
@@ -70,10 +70,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
@@ -83,19 +83,28 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Run ESLint
-        working-directory: ./frontend
+      - name: Run ESLint on native workspace
+        working-directory: ./frontend/native
+        run: npm run lint
+
+      - name: Run ESLint on web workspace
+        working-directory: ./frontend/web
         run: npm run lint
 
   prettier:
-    name: Check Frontend Formatting
+    name: Auto-format Frontend Code
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
@@ -105,25 +114,43 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Check formatting with Prettier
+      - name: Format with Prettier
         working-directory: ./frontend
-        run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,css,md}"
+        run: npx prettier --write "**/*.{js,jsx,ts,tsx,json,css,md}"
+
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit formatted code
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add frontend/
+          git commit -m "style: auto-format frontend code with Prettier"
+          git push
 
   docker-lint:
     name: Lint Dockerfiles
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Lint Backend Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: backend/Dockerfile
           failure-threshold: warning
 
       - name: Lint Frontend Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
-          dockerfile: frontend/Dockerfile
+          dockerfile: frontend/web/Dockerfile
           failure-threshold: warning

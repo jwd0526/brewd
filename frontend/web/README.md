@@ -1,10 +1,11 @@
-# Frontend 
+# Frontend
 
 Frontend README
 
 ## Docker
 
 The `build.sh` script will:
+
 1. Install dependencies
 2. Build the Next.js app (outputs to `out/` directory)
 3. Build the Docker image
@@ -16,6 +17,7 @@ The `build.sh` script will:
 ## Docker Details
 
 The Dockerfile:
+
 1. Uses `node:24-alpine` as base
 2. Copies the built `out/` directory to nginx
 3. Serves static files with nginx on port 3000
