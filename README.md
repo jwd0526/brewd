@@ -82,7 +82,7 @@ Once complete, access:
 
 For native app:
 ```bash
-cd frontend/native
+cd frontend/brewd-mobile
 npm start
 ```
 
@@ -107,7 +107,7 @@ brewd/
 
 The frontend is structured as a monorepo with npm workspaces:
 
-### Native App (Primary) - `frontend/native/`
+### Native App (Primary) - `frontend/brewd-mobile/`
 
 **React Native with Expo** - The primary development focus.
 
@@ -115,7 +115,7 @@ The frontend is structured as a monorepo with npm workspaces:
 ```bash
 npm run dev:native
 # or
-cd frontend/native
+cd frontend/brewd-mobile
 npm start
 ```
 
@@ -168,7 +168,7 @@ The project uses Tailwind CSS for consistent styling across platforms:
   - `frontend/packages/components/` uses `@tailwindcss/postcss`
 
 - **Native**: NativeWind v4 (Tailwind CSS v3 for React Native)
-  - `frontend/native/` uses NativeWind with Tailwind v3
+  - `frontend/brewd-mobile/` uses NativeWind with Tailwind v3
   - Provides Tailwind utilities via `className` prop on React Native components
 
 ## Backend
