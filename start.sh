@@ -178,7 +178,7 @@ elif [ "$MODE" == "native" ]; then
     echo "  - PostgreSQL: localhost:5432"
     echo ""
     echo "To start the native app:"
-    echo "  cd frontend/native"
+    echo "  cd frontend/brewd-mobile"
     echo "  npm start"
     echo ""
     echo "To view backend logs: docker compose logs -f backend"
@@ -195,7 +195,7 @@ elif [ "$MODE" == "both" ]; then
 
     echo ""
     echo "Step 4: Preparing Native environment..."
-    cd ./frontend/native
+    cd ./frontend/brewd-mobile
     ./build.sh
     cd ../..
 
@@ -228,7 +228,7 @@ elif [ "$MODE" == "both" ]; then
     echo "  - PostgreSQL: localhost:5432"
     echo ""
     echo "Native Development:"
-    echo "  cd frontend/native"
+    echo "  cd frontend/brewd-mobile"
     echo "  npm start"
     echo ""
     echo "Commands:"

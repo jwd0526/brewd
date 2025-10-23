@@ -14,17 +14,17 @@ frontend/web/.cache/
 frontend/web/build/
 
 # Frontend - Native (React Native/Expo)
-frontend/native/node_modules/
-frontend/native/.expo/
-frontend/native/.expo-shared/
-frontend/native/dist/
-frontend/native/ios/
-frontend/native/android/
-frontend/native/*.jks
-frontend/native/*.p8
-frontend/native/*.p12
-frontend/native/*.key
-frontend/native/*.mobileprovision
+frontend/brewd-mobile/node_modules/
+frontend/brewd-mobile/.expo/
+frontend/brewd-mobile/.expo-shared/
+frontend/brewd-mobile/dist/
+frontend/brewd-mobile/ios/
+frontend/brewd-mobile/android/
+frontend/brewd-mobile/*.jks
+frontend/brewd-mobile/*.p8
+frontend/brewd-mobile/*.p12
+frontend/brewd-mobile/*.key
+frontend/brewd-mobile/*.mobileprovision
 
 # Frontend - Shared Packages
 frontend/packages/*/node_modules/

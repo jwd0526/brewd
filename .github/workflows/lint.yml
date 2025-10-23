@@ -84,7 +84,7 @@ jobs:
         run: npm ci
 
       - name: Run ESLint on native workspace
-        working-directory: ./frontend/native
+        working-directory: ./frontend/brewd-mobile
         run: npm run lint
 
       - name: Run ESLint on web workspace

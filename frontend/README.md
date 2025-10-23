@@ -6,7 +6,7 @@ Monorepo for Brewd's frontend applications and shared code.
 
 ### Applications
 
-**Native (Primary)** - `./native/`
+**Native (Primary)** - `./brewd-mobile/`
 
 - React Native with Expo
 - Primary development focus
