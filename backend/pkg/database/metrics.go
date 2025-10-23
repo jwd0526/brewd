@@ -8,19 +8,19 @@ import (
 // Metrics holds database performance and usage metrics
 type Metrics struct {
 	// Connection metrics
-	TotalConnections    int64
-	FailedConnections   int64
-	ActiveConnections   int64
-	
+	TotalConnections  int64
+	FailedConnections int64
+	ActiveConnections int64
+
 	// Query metrics
-	TotalQueries        int64
-	FailedQueries       int64
-	QueryDuration       int64 // nanoseconds
-	
+	TotalQueries  int64
+	FailedQueries int64
+	QueryDuration int64 // nanoseconds
+
 	// Health check metrics
-	HealthChecks        int64
-	FailedHealthChecks  int64
-	LastHealthCheck     int64 // unix timestamp
+	HealthChecks       int64
+	FailedHealthChecks int64
+	LastHealthCheck    int64 // unix timestamp
 }
 
 // NewMetrics creates a new Metrics instance
@@ -76,14 +76,14 @@ func (m *Metrics) UpdateLastHealthCheck() {
 // GetMetrics returns a copy of the current metrics
 func (m *Metrics) GetMetrics() Metrics {
 	return Metrics{
-		TotalConnections:    atomic.LoadInt64(&m.TotalConnections),
-		FailedConnections:   atomic.LoadInt64(&m.FailedConnections),
-		ActiveConnections:   atomic.LoadInt64(&m.ActiveConnections),
-		TotalQueries:        atomic.LoadInt64(&m.TotalQueries),
-		FailedQueries:       atomic.LoadInt64(&m.FailedQueries),
-		QueryDuration:       atomic.LoadInt64(&m.QueryDuration),
-		HealthChecks:        atomic.LoadInt64(&m.HealthChecks),
-		FailedHealthChecks:  atomic.LoadInt64(&m.FailedHealthChecks),
-		LastHealthCheck:     atomic.LoadInt64(&m.LastHealthCheck),
+		TotalConnections:   atomic.LoadInt64(&m.TotalConnections),
+		FailedConnections:  atomic.LoadInt64(&m.FailedConnections),
+		ActiveConnections:  atomic.LoadInt64(&m.ActiveConnections),
+		TotalQueries:       atomic.LoadInt64(&m.TotalQueries),
+		FailedQueries:      atomic.LoadInt64(&m.FailedQueries),
+		QueryDuration:      atomic.LoadInt64(&m.QueryDuration),
+		HealthChecks:       atomic.LoadInt64(&m.HealthChecks),
+		FailedHealthChecks: atomic.LoadInt64(&m.FailedHealthChecks),
+		LastHealthCheck:    atomic.LoadInt64(&m.LastHealthCheck),
 	}
 }

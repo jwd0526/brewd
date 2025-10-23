@@ -13,9 +13,9 @@ import (
 
 // Pool error definitions
 var (
-	ErrNilConfig          = fmt.Errorf("config cannot be nil")
-	ErrPoolConfigParse    = fmt.Errorf("unable to parse pool config")
-	ErrConnectionFailed   = fmt.Errorf("failed to create connection pool")
+	ErrNilConfig        = fmt.Errorf("config cannot be nil")
+	ErrPoolConfigParse  = fmt.Errorf("unable to parse pool config")
+	ErrConnectionFailed = fmt.Errorf("failed to create connection pool")
 )
 
 // Pool wraps pgxpool.Pool with additional functionality
@@ -77,9 +77,9 @@ func NewPool(ctx context.Context, config *Config) (*Pool, error) {
 	}
 
 	customPool := &Pool{
-		Pool:    pool,           // Embed the pgxpool.Pool
-		config:  config,         // Store the config
-		metrics: metrics,	 	 // Initialize pool metrics
+		Pool:    pool,    // Embed the pgxpool.Pool
+		config:  config,  // Store the config
+		metrics: metrics, // Initialize pool metrics
 	}
 
 	// Update active connections count
