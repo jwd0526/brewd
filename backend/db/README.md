@@ -1,4 +1,4 @@
-# DB Schema
+# DB Definition
 
 Description of the user schema.
 
@@ -129,6 +129,76 @@ CREATE TABLE users (
 - Nullable - NULL for active accounts
 - Implements soft delete pattern - records are never physically removed
 - When set, the account should be treated as deleted by the application
+
+## Query Definitions
+
+The following queries are defined in `queries/users.sql` for user operations:
+
+### CreateUser
+
+Creates a new user account with the required fields.
+
+**Parameters:**
+1. email (VARCHAR)
+2. password_hash (VARCHAR)
+3. first_name (VARCHAR)
+4. last_name (VARCHAR)
+5. created_by (INTEGER, nullable)
+
+**Returns:** Complete user record
+
+**Usage:** Called during user registration (POST /api/users)
+
+### GetUserByID
+
+Retrieves a user by their ID.
+
+**Parameters:**
+1. id (INTEGER)
+
+**Returns:** Complete user record, or null if not found
+
+**Notes:**
+- Automatically filters out soft-deleted users (WHERE deleted_at IS NULL)
+- Used for retrieving user details and validating user existence
+
+### GetUserByEmail
+
+Finds a user by their email address.
+
+**Parameters:**
+1. email (VARCHAR)
+
+**Returns:** Complete user record, or null if not found
+
+**Notes:**
+- Automatically filters out soft-deleted users (WHERE deleted_at IS NULL)
+- Primary query for authentication (POST /api/auth/login)
+- Can be used to check if email already exists during registration
+
+### UpdateUser
+
+Updates all user fields in a single operation.
+
+**Parameters:**
+1. id (INTEGER) - User to update
+2. email (VARCHAR)
+3. password_hash (VARCHAR)
+4. first_name (VARCHAR)
+5. last_name (VARCHAR)
+6. features (JSONB)
+7. active (BOOLEAN)
+8. email_verified (BOOLEAN)
+9. last_login (TIMESTAMPTZ, nullable)
+10. updated_by (INTEGER, nullable)
+
+**Returns:** None (exec query)
+
+**Notes:**
+- Automatically sets updated_at to CURRENT_TIMESTAMP
+- Only updates non-deleted users (WHERE deleted_at IS NULL)
+- Application must provide all field values (no partial updates)
+- Used for profile updates (PUT /api/users/:id), password changes, and tracking last login
 
 ## Related API Endpoints
 
