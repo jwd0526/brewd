@@ -39,7 +39,6 @@ backend/vendor/
 *.so
 *.dylib
 *.o
-pkg/
 test.out
 
 # Logs
