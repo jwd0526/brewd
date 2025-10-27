@@ -1,7 +1,6 @@
 name: Lint
 
 on:
-  push:
   pull_request:
 
 jobs:
@@ -25,46 +24,6 @@ jobs:
           working-directory: ./backend
           args: --timeout=5m
 
-  go-fmt:
-    name: Auto-format Go Code
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: '1.24'
-          cache-dependency-path: './backend/go.sum'
-
-      - name: Run gofmt
-        working-directory: ./backend
-        run: |
-          gofmt -w .
-
-      - name: Check for changes
-        id: verify-changed-files
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Commit formatted code
-        if: steps.verify-changed-files.outputs.changed == 'true'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add backend/
-          git commit -m "style: auto-format Go code with gofmt"
-          git push
-
   eslint:
     name: Lint Frontend Code
     runs-on: ubuntu-latest
@@ -77,68 +36,15 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
-          cache-dependency-path: './frontend/package-lock.json'
+          cache-dependency-path: './frontend/brewd-mobile/package-lock.json'
 
       - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Run ESLint on native workspace
-<<<<<<< HEAD
         working-directory: ./frontend/brewd-mobile
-=======
-        working-directory: ./frontend/native
->>>>>>> jd/fix-expo
-        run: npm run lint
-
-      - name: Run ESLint on web workspace
-        working-directory: ./frontend/web
-        run: npm run lint
-
-  prettier:
-    name: Auto-format Frontend Code
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: './frontend/package-lock.json'
-
-      - name: Install dependencies
-        working-directory: ./frontend
         run: npm ci
 
-      - name: Format with Prettier
-        working-directory: ./frontend
-        run: npx prettier --write "**/*.{js,jsx,ts,tsx,json,css,md}"
-
-      - name: Check for changes
-        id: verify-changed-files
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Commit formatted code
-        if: steps.verify-changed-files.outputs.changed == 'true'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add frontend/
-          git commit -m "style: auto-format frontend code with Prettier"
-          git push
+      - name: Run ESLint
+        working-directory: ./frontend/brewd-mobile
+        run: npm run lint
 
   docker-lint:
     name: Lint Dockerfiles
@@ -151,10 +57,4 @@ jobs:
         uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: backend/Dockerfile
-          failure-threshold: warning
-
-      - name: Lint Frontend Dockerfile
-        uses: hadolint/hadolint-action@v3.3.0
-        with:
-          dockerfile: frontend/web/Dockerfile
           failure-threshold: warning

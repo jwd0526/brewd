@@ -1,12 +1,10 @@
 # Brewed
 
-A webapp for coffee enthusiasts to assist them in perfecting their brew, and helping other people craft their perfect cup.
+A mobile app for coffee enthusiasts to assist them in perfecting their brew, and helping other people craft their perfect cup.
 
 ## Architecture
 
-- **Frontend**:
-  - **Native** (Primary): React Native with Expo
-  - **Web** (Secondary): Next.js (Static Export) served by Nginx
+- **Frontend**: React Native with Expo (Mobile)
 - **Backend**: Go with Gin framework
 - **Database**: PostgreSQL 15
 - **Infrastructure**: Docker & Docker Compose
@@ -26,69 +24,35 @@ A webapp for coffee enthusiasts to assist them in perfecting their brew, and hel
    cd brewd
    ```
 
-2. **Install frontend dependencies**
+2. **Build and start backend services**
    ```bash
-   cd frontend
+   chmod +x build.sh
+   ./build.sh
+   ```
+
+   This will:
+   - Build the Go backend
+   - Start backend and PostgreSQL in Docker
+   - Display instructions for starting the mobile app
+
+3. **Start the mobile app**
+   ```bash
+   cd frontend/brewd-mobile
    npm install
-   cd ..
+   npm start
    ```
 
-3. **Make the start script executable**
-   ```bash
-   chmod +x start.sh
-   ```
+   Then scan the QR code with the Expo Go app on your device.
 
-4. **Run the application**
-   ```bash
-   # Start both web and native (default)
-   ./start.sh
+### Scripts
 
-   # Or start specific mode
-   ./start.sh --web      # Web only (Next.js + Backend + DB)
-   ./start.sh --native   # Native dev (Backend + DB only)
-
-   # Clean build artifacts before starting
-   ./start.sh --clean --web
-   ```
-
-### Start Script Options
-
-The `./start.sh` script supports the following options:
-
-- **`./start.sh`** (no flags): Builds and starts both web and native environments
-- **`--web`**: Starts web frontend only (Next.js) with backend and database in Docker
-- **`--native`**: Starts backend and database in Docker for native app development (Expo runs locally)
-- **`--clean`**: Removes all build artifacts and Docker containers before starting
-  - Deletes `backend/bin/`
-  - Deletes `frontend/web/out/` and `frontend/web/.next/`
-  - Deletes `frontend/packages/*/dist/`
-  - Stops and removes all Docker containers and volumes
-
-### What Gets Built
-
-The start script will:
-1. Build shared packages (`frontend/packages/*`)
-2. Build the Go backend (`backend/bin/brewd-backend`)
-3. Build the appropriate frontend (web and/or native)
-4. Create Docker images (for web mode)
-5. Start services with Docker Compose
+- **`./build.sh`**: Build and deploy backend + PostgreSQL
+- **`./clean.sh`**: Remove all build artifacts and Docker containers
 
 ### Access Points
 
-Once complete, access:
-- **Web Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080
 - **PostgreSQL**: localhost:5432
-
-For native app:
-```bash
-<<<<<<< HEAD
-cd frontend/brewd-mobile
-=======
-cd frontend/native
->>>>>>> jd/fix-expo
-npm start
-```
 
 ## Project Structure
 
@@ -96,88 +60,29 @@ npm start
 brewd/
 ├── backend/              # Go/Gin API server
 ├── frontend/
-│   ├── native/          # React Native (Expo) - PRIMARY
-│   ├── web/             # Next.js static site - SECONDARY
-│   └── packages/        # Shared code between native/web
-│       ├── api-client/  # API client wrapper
-│       ├── types/       # Shared TypeScript types
-│       ├── utils/       # Shared utilities
-│       └── components/  # Shared React components
-├── compose.yaml         # Docker Compose config
-└── package.json         # Root workspace config
+│   └── brewd-mobile/    # React Native (Expo)
+├── compose.yaml          # Docker Compose config
+├── build.sh              # Build and deploy script
+└── clean.sh              # Cleanup script
 ```
 
 ## Frontend
 
-The frontend is structured as a monorepo with npm workspaces:
+### Mobile App - `frontend/brewd-mobile/`
 
-### Native App (Primary) - `frontend/brewd-mobile/`
-
-**React Native with Expo** - The primary development focus.
+**React Native with Expo**
 
 **Development:**
 ```bash
-npm run dev:native
-# or
 cd frontend/brewd-mobile
 npm start
 ```
 
 **Tech Stack:**
 - React Native
-- Expo
+- Expo SDK 54
 - TypeScript
-- NativeWind (Tailwind CSS v3 for React Native)
-- Shared packages from `frontend/packages/`
-
-### Web App (Secondary) - `frontend/web/`
-
-**Next.js Static Export** - Afterthought, lower priority.
-
-**Development:**
-```bash
-npm run dev:web
-# or
-cd frontend/web
-npm run dev
-```
-
-**Production Build:**
-```bash
-cd frontend/web
-npm run build  # Outputs to out/
-```
-
-**Tech Stack:**
-- Next.js 16 (Static Export)
-- React 19
-- TypeScript
-- Tailwind CSS v4
-- Nginx (Docker deployment)
-
-### Shared Packages - `frontend/packages/`
-
-Code shared between native and web apps:
-- **api-client**: API communication layer
-- **types**: TypeScript type definitions
-- **utils**: Shared utility functions
-- **components**: Platform-agnostic React components (styled with Tailwind CSS v4)
-
-### Styling
-
-The project uses Tailwind CSS for consistent styling across platforms:
-
-- **Web & Shared Components**: Tailwind CSS v4 with PostCSS
-  - `frontend/web/` uses `@tailwindcss/postcss`
-  - `frontend/packages/components/` uses `@tailwindcss/postcss`
-
-- **Native**: NativeWind v4 (Tailwind CSS v3 for React Native)
-<<<<<<< HEAD
-  - `frontend/brewd-mobile/` uses NativeWind with Tailwind v3
-=======
-  - `frontend/native/` uses NativeWind with Tailwind v3
->>>>>>> jd/fix-expo
-  - Provides Tailwind utilities via `className` prop on React Native components
+- ESLint with Expo config
 
 ## Backend
 
@@ -241,10 +146,9 @@ docker exec -it brewd-db psql -U username -d brewd-db
 
 ## Health Checks
 
-All services include health checks:
+Services include health checks:
 - **Database**: `pg_isready` check every 30s
 - **Backend**: HTTP check at `/health` every 30s
-- **Frontend**: HTTP check at root every 30s
 
 ## Workflow
 
