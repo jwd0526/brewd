@@ -1,225 +1,352 @@
-# DB Definition
+# Coffee Social Platform - Database Schema
 
-Description of the user schema.
+A social media platform for coffee enthusiasts to share, rate, and discover coffee brews. Inspired by Untappd.
 
-## Object Definition
+## Core Objects
 
-The User schema is defined as follows:
+### User
+
+Represents a user account on the platform.
 
 ```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(254) UNIQUE NOT NULL,
-    password_hash VARCHAR(60) NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    features JSONB DEFAULT '{}',
-    active BOOLEAN DEFAULT true,
-    email_verified BOOLEAN DEFAULT false,
-    last_login TIMESTAMPTZ,
-    created_by INTEGER REFERENCES users(id),
-    updated_by INTEGER REFERENCES users(id),
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMPTZ
-);
+CREATE TABLE user {
+    id ulid PRIMARY KEY,
+    username varchar UNIQUE NOT NULL,
+    email varchar UNIQUE NOT NULL,
+    password_hash varchar NOT NULL,
+    profile_picture_url text,
+    bio text,
+    location text,
+    joined_at timestamp DEFAULT NOW(),
+    created_at timestamp DEFAULT NOW(),
+    updated_at timestamp DEFAULT NOW()
+}
 ```
 
-## Column Definitions
+**Fields:**
+- `id` - Unique identifier (ULID format)
+- `username` - Unique username for the user
+- `email` - User's email address
+- `profile_picture_url` - URL to profile image
+- `bio` - User's bio/description
+- `location` - User's location (free text)
+- `joined_at` - When the user created their account
 
-### id
+**Relationships:**
+- Has many Posts (via `owner_id`)
+- Has many Comments (via `owner_id`)
+- Has many Friendships (via `user_friendships`)
+- Has many Notifications (via `recipient_user_id`)
 
-- Type: `SERIAL PRIMARY KEY`
-- Primary key and unique identifier
-- While the database uses SERIAL for auto-incrementing, the application layer should use [ULID](https://github.com/oklog/ulid) for user identification in API routes
-- ULIDs are lexicographically sortable, URL-safe, and globally unique identifiers
 
-### email
 
-- Type: `VARCHAR(254) UNIQUE NOT NULL`
-- User's email address
-- Must be unique across all users
-- Maximum length of 254 characters (per RFC 5321)
-- Required field for account creation
-- Used for login authentication
+### Post
 
-### password_hash
+The main content unit representing a coffee brew that a user has made and rated.
 
-- Type: `VARCHAR(60) NOT NULL`
-- Bcrypt hash of the user's password
-- Never store plain text passwords
-- 60 characters accommodate bcrypt hash format
-- Required field for authentication
+```sql
+CREATE TABLE post {
+    id ulid PRIMARY KEY,
+    owner_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    brew_id ulid REFERENCES brew(id),
+    title varchar NOT NULL,
+    description text,
+    rating decimal(2,1) CHECK (rating >= 0 AND rating <= 5),
+    created_at timestamp DEFAULT NOW(),
+    updated_at timestamp DEFAULT NOW()
+}
+```
 
-### first_name
+**Fields:**
+- `id` - Unique identifier
+- `owner_id` - User who created the post
+- `brew_id` - The brew/coffee type being reviewed
+- `title` - Post title
+- `description` - Detailed description or notes
+- `rating` - User's rating of their own brew (0-5 scale)
 
-- Type: `VARCHAR(100) NOT NULL`
-- User's first name
-- Maximum length of 100 characters
-- Required field for account creation
+**Relationships:**
+- Belongs to User (owner)
+- Belongs to Brew
+- Has many Media (photos/videos)
+- Has many Comments
+- Has many Likes (via `post_likes`)
+- Has many Tags (via `post_user_tags`)
 
-### last_name
 
-- Type: `VARCHAR(100) NOT NULL`
-- User's last name
-- Maximum length of 100 characters
-- Required field for account creation
+### Brew
 
-### features
+Represents a type of coffee or specific brew configuration.
 
-- Type: `JSONB DEFAULT '{}'`
-- JSON object storing user data
-- Allows flexible storage of user-specific configuration
-- Defaults to empty JSON object
-- Example: `{"darkMode": true, "notifications": false}`
+```sql
+CREATE TABLE brew {
+    id ulid PRIMARY KEY,
+    name varchar NOT NULL,
+    brew_method varchar,
+    bean_origin text,
+    roaster text,
+    notes text,
+    created_by ulid REFERENCES user(id),
+    is_public boolean DEFAULT true,
+    created_at timestamp DEFAULT NOW(),
+    updated_at timestamp DEFAULT NOW()
+}
+```
 
-### active
+**Fields:**
+- `id` - Unique identifier
+- `name` - Name of the brew
+- `brew_method` - Method used (e.g., "espresso", "pour over", "french press", "aeropress", "cold brew")
+- `bean_origin` - Origin of the coffee beans
+- `roaster` - Coffee roaster name
+- `notes` - Additional notes about the brew
+- `created_by` - User who created this brew entry
+- `is_public` - Whether this brew is visible to all users
 
-- Type: `BOOLEAN DEFAULT true`
-- Indicates whether the user account is active
-- Defaults to true on account creation
-- Can be used to soft-disable accounts without deletion
+**Relationships:**
+- Created by User
+- Used in many Posts
 
-### email_verified
 
-- Type: `BOOLEAN DEFAULT false`
-- Tracks whether the user has verified their email address
-- Defaults to false on account creation
-- Should be set to true after email verification process
 
-### last_login
+### Comment
 
-- Type: `TIMESTAMPTZ`
-- Timestamp of the user's most recent login
-- Nullable - will be NULL for users who have never logged in
-- Updated on each successful login via POST /api/auth/login
+Represents comments on posts, with support for threaded replies.
 
-### created_by
+```sql
+CREATE TABLE comment {
+    id ulid PRIMARY KEY,
+    post_id ulid REFERENCES post(id) ON DELETE CASCADE,
+    parent_comment_id ulid REFERENCES comment(id) ON DELETE CASCADE,
+    owner_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    content text NOT NULL,
+    created_at timestamp DEFAULT NOW(),
+    updated_at timestamp DEFAULT NOW()
+}
+```
 
-- Type: `INTEGER REFERENCES users(id)`
-- Foreign key reference to the user who created this account
-- Nullable - will be NULL for self-registered users
-- Useful for admin-created accounts or system auditing
+**Fields:**
+- `id` - Unique identifier
+- `post_id` - Post this comment belongs to
+- `parent_comment_id` - Parent comment (null for top-level comments)
+- `owner_id` - User who wrote the comment
+- `content` - Comment text
 
-### updated_by
+**Relationships:**
+- Belongs to Post
+- Belongs to User (owner)
+- Belongs to Comment (parent, optional)
+- Has many Comments (replies)
+- Has many Likes (via `comment_likes`)
 
-- Type: `INTEGER REFERENCES users(id)`
-- Foreign key reference to the user who last updated this account
-- Nullable - will be NULL until first update
-- Tracks who made the most recent modification
 
-### created_at
 
-- Type: `TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`
-- Timestamp when the user account was created
-- Automatically set to current timestamp on insertion
-- Immutable after creation
+### Media
 
-### updated_at
+Represents photos or videos attached to posts.
 
-- Type: `TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`
-- Timestamp when the user account was last modified
-- Should be updated whenever the user record changes
-- Useful for tracking account modifications
+```sql
+CREATE TABLE media {
+    id ulid PRIMARY KEY,
+    post_id ulid REFERENCES post(id) ON DELETE CASCADE,
+    url text NOT NULL,
+    type varchar NOT NULL,
+    display_order int DEFAULT 0,
+    created_at timestamp DEFAULT NOW()
+}
+```
 
-### deleted_at
+**Fields:**
+- `id` - Unique identifier
+- `post_id` - Post this media belongs to
+- `url` - URL to the media file
+- `type` - Media type ("image" or "video")
+- `display_order` - Order for displaying multiple media items
 
-- Type: `TIMESTAMPTZ`
-- Timestamp when the user account was soft-deleted
-- Nullable - NULL for active accounts
-- Implements soft delete pattern - records are never physically removed
-- When set, the account should be treated as deleted by the application
+**Relationships:**
+- Belongs to Post
 
-## Query Definitions
 
-The following queries are defined in `queries/users.sql` for user operations:
 
-### CreateUser
+### Notification
 
-Creates a new user account with the required fields.
+Represents notifications for user activities.
 
-**Parameters:**
-1. email (VARCHAR)
-2. password_hash (VARCHAR)
-3. first_name (VARCHAR)
-4. last_name (VARCHAR)
-5. created_by (INTEGER, nullable)
+```sql
+CREATE TABLE notification {
+    id ulid PRIMARY KEY,
+    recipient_user_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    actor_user_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    type varchar NOT NULL,
+    reference_id ulid,
+    reference_type varchar,
+    is_read boolean DEFAULT false,
+    created_at timestamp DEFAULT NOW()
+}
+```
 
-**Returns:** Complete user record
+**Fields:**
+- `id` - Unique identifier
+- `recipient_user_id` - User receiving the notification
+- `actor_user_id` - User who triggered the notification
+- `type` - Notification type ("like", "comment", "friend_request", "tag", "follow")
+- `reference_id` - ID of the related object (post, comment, etc.)
+- `reference_type` - Type of reference ("post", "comment", "friendship")
+- `is_read` - Whether the notification has been read
 
-**Usage:** Called during user registration (POST /api/users)
+**Relationships:**
+- Belongs to User (recipient)
+- Belongs to User (actor)
 
-### GetUserByID
 
-Retrieves a user by their ID.
 
-**Parameters:**
-1. id (INTEGER)
+## Junction Tables
 
-**Returns:** Complete user record, or null if not found
+These tables manage many-to-many relationships between entities.
 
-**Notes:**
-- Automatically filters out soft-deleted users (WHERE deleted_at IS NULL)
-- Used for retrieving user details and validating user existence
+### post_likes
 
-### GetUserByEmail
+Tracks which users liked which posts.
 
-Finds a user by their email address.
+```sql
+CREATE TABLE post_likes {
+    post_id ulid REFERENCES post(id) ON DELETE CASCADE,
+    user_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    created_at timestamp DEFAULT NOW(),
+    PRIMARY KEY (post_id, user_id)
+}
+```
 
-**Parameters:**
-1. email (VARCHAR)
+**Purpose:** Allow users to like posts and query who liked what.
 
-**Returns:** Complete user record, or null if not found
 
-**Notes:**
-- Automatically filters out soft-deleted users (WHERE deleted_at IS NULL)
-- Primary query for authentication (POST /api/auth/login)
-- Can be used to check if email already exists during registration
 
-### UpdateUser
+### comment_likes
 
-Updates all user fields in a single operation.
+Tracks which users liked which comments.
 
-**Parameters:**
-1. id (INTEGER) - User to update
-2. email (VARCHAR)
-3. password_hash (VARCHAR)
-4. first_name (VARCHAR)
-5. last_name (VARCHAR)
-6. features (JSONB)
-7. active (BOOLEAN)
-8. email_verified (BOOLEAN)
-9. last_login (TIMESTAMPTZ, nullable)
-10. updated_by (INTEGER, nullable)
+```sql
+CREATE TABLE comment_likes {
+    comment_id ulid REFERENCES comment(id) ON DELETE CASCADE,
+    user_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    created_at timestamp DEFAULT NOW(),
+    PRIMARY KEY (comment_id, user_id)
+}
+```
 
-**Returns:** None (exec query)
+**Purpose:** Allow users to like comments.
 
-**Notes:**
-- Automatically sets updated_at to CURRENT_TIMESTAMP
-- Only updates non-deleted users (WHERE deleted_at IS NULL)
-- Application must provide all field values (no partial updates)
-- Used for profile updates (PUT /api/users/:id), password changes, and tracking last login
 
-## Related API Endpoints
 
-Per Phase 1 specifications, the following API endpoints interact with this schema:
+### post_user_tags
 
-- `POST /api/users` - Create new user account
-- `PUT /api/users/:id` - Modify user (where :id is a ULID)
-- `POST /api/auth/login` - User login with JWT validation
-- `POST /api/auth/logout` - User logout and token removal
+Tracks which users are tagged in which posts.
 
-## ULID Usage
+```sql
+CREATE TABLE post_user_tags {
+    post_id ulid REFERENCES post(id) ON DELETE CASCADE,
+    user_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    created_at timestamp DEFAULT NOW(),
+    PRIMARY KEY (post_id, user_id)
+}
+```
 
-Users are designated by their ULID (Universally Unique Lexicographically Sortable Identifier) in API routes. While the database uses SERIAL for the primary key, the application layer should convert between the database ID and ULID format.
+**Purpose:** Allow users to tag friends in their coffee posts.
 
-ULID Specification: https://github.com/oklog/ulid
 
-Benefits of ULID:
-- 128-bit compatibility with UUID
-- Lexicographically sortable
-- Canonically encoded as 26 character string (vs 36 for UUID)
-- URL-safe characters
-- Case insensitive
-- No special characters
-- Monotonic sort order (when generated in same millisecond)
+
+### user_friendships
+
+Manages friendships/follows between users.
+
+```sql
+CREATE TABLE user_friendships {
+    user_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    friend_id ulid REFERENCES user(id) ON DELETE CASCADE,
+    status varchar DEFAULT 'pending',
+    created_at timestamp DEFAULT NOW(),
+    updated_at timestamp DEFAULT NOW(),
+    PRIMARY KEY (user_id, friend_id)
+}
+```
+
+**Fields:**
+- `status` - Friendship status ("pending", "accepted", "blocked")
+
+**Purpose:** Manage social connections. Can be used for mutual friendships or one-way follows depending on implementation.
+
+
+
+## Common Query Examples
+
+### Get all posts by a user
+```sql
+SELECT * FROM post WHERE owner_id = 'user123' ORDER BY created_at DESC;
+```
+
+### Get all users who liked a post
+```sql
+SELECT u.* FROM user u
+JOIN post_likes pl ON u.id = pl.user_id
+WHERE pl.post_id = 'post456';
+```
+
+### Get all posts a user has liked
+```sql
+SELECT p.* FROM post p
+JOIN post_likes pl ON p.id = pl.post_id
+WHERE pl.user_id = 'user123';
+```
+
+### Get comments for a post (top-level only)
+```sql
+SELECT * FROM comment 
+WHERE post_id = 'post456' AND parent_comment_id IS NULL
+ORDER BY created_at ASC;
+```
+
+### Get user's friends (accepted only)
+```sql
+SELECT u.* FROM user u
+JOIN user_friendships uf ON u.id = uf.friend_id
+WHERE uf.user_id = 'user123' AND uf.status = 'accepted';
+```
+
+### Get unread notifications for a user
+```sql
+SELECT * FROM notification 
+WHERE recipient_user_id = 'user123' AND is_read = false
+ORDER BY created_at DESC;
+```
+
+### Get most popular brews (by post count)
+```sql
+SELECT b.*, COUNT(p.id) as post_count
+FROM brew b
+JOIN post p ON b.id = p.brew_id
+GROUP BY b.id
+ORDER BY post_count DESC
+LIMIT 10;
+```
+
+
+
+## Design Decisions
+
+### Why Junction Tables?
+Rather than storing arrays of IDs (like `likes: [user1, user2, user3]`), we use junction tables because they:
+- Enable efficient querying and indexing
+- Support metadata (like `created_at` timestamps)
+- Maintain referential integrity
+- Handle concurrent operations better
+- Scale more effectively
+
+### Why ULID?
+ULIDs (Universally Unique Lexicographically Sortable Identifiers) provide:
+- Sortability by creation time
+- URL-safe format
+- Better performance than UUIDs in indexes
+- No central ID generation needed
+
+### Rating System
+Posts include a self-rating where users rate their own brew (0-5 scale), similar to Untappd's check-in system.
