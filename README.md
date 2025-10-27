@@ -82,7 +82,11 @@ Once complete, access:
 
 For native app:
 ```bash
+<<<<<<< HEAD
 cd frontend/brewd-mobile
+=======
+cd frontend/native
+>>>>>>> jd/fix-expo
 npm start
 ```
 
@@ -168,7 +172,11 @@ The project uses Tailwind CSS for consistent styling across platforms:
   - `frontend/packages/components/` uses `@tailwindcss/postcss`
 
 - **Native**: NativeWind v4 (Tailwind CSS v3 for React Native)
+<<<<<<< HEAD
   - `frontend/brewd-mobile/` uses NativeWind with Tailwind v3
+=======
+  - `frontend/native/` uses NativeWind with Tailwind v3
+>>>>>>> jd/fix-expo
   - Provides Tailwind utilities via `className` prop on React Native components
 
 ## Backend
