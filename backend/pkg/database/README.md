@@ -12,7 +12,7 @@ The database package provides a comprehensive PostgreSQL integration layer featu
 - **Production Ready**: Retry logic, timeouts, graceful shutdowns, and error handling
 - **Configuration Management**: Environment-based configuration with sensible defaults
 
-## 📁 Package Structure
+## Package Structure
 
 ```
 database/
