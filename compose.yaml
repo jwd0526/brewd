@@ -48,28 +48,6 @@ services:
       start_period: 40s
     networks:
       - brewd-network
-  frontend:
-    container_name: brewd-frontend
-    build:
-      context: ./frontend/web
-      dockerfile: Dockerfile
-    image: brewd-frontend:0.1.0
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://backend:8080
-    depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - brewd-network
 networks:
   brewd-network:
     driver: bridge
