@@ -1,5 +1,5 @@
 -- name: CreateUser :one
-INSERT INTO users (
+INSERT INTO user (
     email,
     password_hash,
     first_name,
@@ -11,17 +11,17 @@ INSERT INTO users (
 RETURNING *;
 
 -- name: GetUserByID :one
-SELECT * FROM users
+SELECT * FROM user
 WHERE id = $1
 AND deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
-SELECT * FROM users
+SELECT * FROM user
 WHERE email = $1
 AND deleted_at IS NULL;
 
 -- name: UpdateUser :exec
-UPDATE users
+UPDATE user
 SET
     email = $2,
     password_hash = $3,

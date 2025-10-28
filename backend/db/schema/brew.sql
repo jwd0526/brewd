@@ -3,7 +3,12 @@
 CREATE TABLE brew (
     id TEXT PRIMARY KEY, -- ULID format
     name VARCHAR(255) NOT NULL,
-    brew_method VARCHAR(100),
+    brew_method VARCHAR(100) CHECK (
+        brew_method IS NULL OR
+        brew_method IN ('espresso', 'pour_over', 'french_press', 'aeropress',
+                       'cold_brew', 'drip', 'moka_pot', 'siphon', 'chemex',
+                       'v60', 'turkish', 'percolator', 'other')
+    ),
     bean_origin TEXT,
     roaster TEXT,
     notes TEXT,

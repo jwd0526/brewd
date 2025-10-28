@@ -17,3 +17,4 @@ CREATE TABLE "user" (
 CREATE INDEX idx_user_username ON "user"(username);
 CREATE INDEX idx_user_email ON "user"(email);
 CREATE INDEX idx_user_joined_at ON "user"(joined_at);
+

@@ -7,6 +7,7 @@ CREATE TABLE post (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     rating DECIMAL(2,1) CHECK (rating >= 0 AND rating <= 5),
+    visibility VARCHAR(50) DEFAULT 'public' CHECK (visibility IN ('public', 'friends', 'private')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -16,3 +17,4 @@ CREATE INDEX idx_post_owner_id ON post(owner_id);
 CREATE INDEX idx_post_brew_id ON post(brew_id);
 CREATE INDEX idx_post_created_at ON post(created_at);
 CREATE INDEX idx_post_rating ON post(rating);
+CREATE INDEX idx_post_visibility ON post(visibility, created_at);

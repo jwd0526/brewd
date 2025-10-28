@@ -14,4 +14,5 @@ CREATE TABLE notification (
 -- Indexes for common queries
 CREATE INDEX idx_notification_recipient ON notification(recipient_user_id);
 CREATE INDEX idx_notification_is_read ON notification(recipient_user_id, is_read);
+CREATE INDEX idx_notification_type ON notification(recipient_user_id, type, is_read);
 CREATE INDEX idx_notification_created_at ON notification(created_at);
