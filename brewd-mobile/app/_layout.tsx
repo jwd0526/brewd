@@ -9,9 +9,9 @@ export default function Layout() {
       }}
     >
       <Tabs.Screen
-        name="posts"
+        name="index"
         options={{
-          title: 'Posts',
+          title: 'Activity',
         }}
       />
       <Tabs.Screen
@@ -20,12 +20,12 @@ export default function Layout() {
           title: 'Discover',
         }}
       />
-      <Tabs.Screen
-        name="post"
-        options={{
-          title: 'Post',
-        }}
-      />
+        <Tabs.Screen
+          name="post"
+          options={{
+            title: 'Post',
+          }}
+        />
       <Tabs.Screen
         name="notifications"
         options={{
