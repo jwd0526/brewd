@@ -1,9 +1,9 @@
 import { View, Text } from 'react-native';
 
-export default function SettingsScreen() {
+export default function PostScreen() {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>⚙️ Settings Tab</Text>
+      <Text>👤 Profile</Text>
     </View>
-  );
+  )
 }

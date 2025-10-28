@@ -1,9 +1,10 @@
 import { View, Text } from 'react-native';
 
-export default function ProfileScreen() {
+
+export default function NotificationsScreen() {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>👤 Profile</Text>
+      <Text>🔔 Notifications</Text>
     </View>
-  );
+  )
 }

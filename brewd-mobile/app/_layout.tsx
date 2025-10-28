@@ -9,25 +9,33 @@ export default function Layout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="posts"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            // You can use any icon library here
-            <></> // placeholder, we’ll add icons next
-          ),
+          title: 'Posts',
+        }}
+      />
+      <Tabs.Screen
+        name="discover"
+        options={{
+          title: 'Discover',
+        }}
+      />
+      <Tabs.Screen
+        name="post"
+        options={{
+          title: 'Post',
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
         }}
       />
     </Tabs>
