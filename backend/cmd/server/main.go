@@ -24,12 +24,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Set environment variable for database config loader
-	os.Setenv("DATABASE_URL", cfg.DBConnectionString)
-
+	// Get db config
 	dbConfig, err := database.LoadConfigFromEnv()
 	if err != nil {
-		logger.Error("Failed to parse database configuration", "error", err)
+		logger.Error("Failed to load database configuration", "error", err)
 		os.Exit(1)
 	}
 

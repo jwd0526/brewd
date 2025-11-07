@@ -7,23 +7,21 @@ import (
 )
 
 type Config struct {
-	DBConnectionString string
-	JWTSecret string
-	Environment string
-	LogLevel string
-	Port string
-	BcryptCost int
+	JWTSecret        string
+	Environment      string
+	LogLevel         string
+	Port             string
+	BcryptCost       int
 	JWTExpirationHrs int
 }
 
 func LoadConfig() *Config {
 	return &Config{
-		DBConnectionString: mustGetEnv("DB_CONNECTION_STRING"),
-		JWTSecret: mustGetEnv("JWT_SECRET"),
-		Environment: getEnvOrDefault("ENVIRONMENT", "development"),
-		LogLevel: getEnvOrDefault("LOG_LEVEL", "INFO"),
-		Port: getEnvOrDefault("PORT", "8080"),
-		BcryptCost: strToInt(getEnvOrDefault("BCRYPT_COST", "10")),
+		JWTSecret:        mustGetEnv("JWT_SECRET"),
+		Environment:      getEnvOrDefault("ENVIRONMENT", "development"),
+		LogLevel:         getEnvOrDefault("LOG_LEVEL", "INFO"),
+		Port:             getEnvOrDefault("PORT", "8080"),
+		BcryptCost:       strToInt(getEnvOrDefault("BCRYPT_COST", "10")),
 		JWTExpirationHrs: strToInt(getEnvOrDefault("JWT_EXPIRATION_HRS", "24")),
 	}
 }

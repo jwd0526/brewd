@@ -31,8 +31,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Database connection string (parsed by pkg/database)
-      DB_CONNECTION_STRING: ${DB_CONNECTION_STRING}
+      # Database connection (managed by pkg/database)
+      DATABASE_URL: postgres://admin:admin@db:5432/brewd-db?sslmode=disable
 
       # JWT Configuration
       JWT_SECRET: ${JWT_SECRET}
