@@ -31,12 +31,20 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: admin
-      DB_PASSWORD: admin
-      DB_NAME: brewd-db
-      GIN_MODE: release
+      # Database connection string (parsed by pkg/database)
+      DB_CONNECTION_STRING: ${DB_CONNECTION_STRING}
+
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_HRS: ${JWT_EXPIRATION_HRS}
+
+      # Server configuration
+      ENVIRONMENT: ${ENVIRONMENT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      PORT: ${PORT}
+
+      # Bcrypt cost for password hashing
+      BCRYPT_COST: 10
     depends_on:
       db:
         condition: service_healthy

@@ -43,14 +43,14 @@ All endpoints are versioned under `/api/v1` prefix.
 ## Authentication
 
 ### JWT Tokens
-- Stateless authentication using JSON Web Tokens
+- Stateless auth (JWT)
 - Token contains: user_id, username, expiration
 - Passed via `Authorization: Bearer <token>` header
-- Tokens expire after 24 hours (configurable)
+- Tokens expire based on config
 
 ### Password Security
-- bcrypt hashing with automatic salting
-- Cost factor: 10 (adjustable via config)
+- bcrypt hashing with salting
+- Cost factor configurable
 - Passwords never stored in plaintext or logged
 
 ## Request/Response Format
@@ -91,7 +91,7 @@ All endpoints are versioned under `/api/v1` prefix.
 All input is validated using struct tags:
 - Email format validation
 - Username: 3-30 alphanumeric characters
-- Password: minimum 8 characters
+- Password: minimum 8 characters, 1 symbol, varying case (at least one uppercase and lowercase)
 - Required fields enforced
 - Max lengths for text fields
 
@@ -186,10 +186,21 @@ Environment variables:
 5. **Rate Limiting**: TODO - implement in future phase
 6. **Input Sanitization**: Validation via go-playground/validator
 
+## Implementation Plan
+
+1. Config ← START HERE (no dependencies)
+2. Errors (used by everything)
+3. Password utilities (bcrypt, uses config for cost)
+4. JWT utilities (token generation, uses config for secret)
+5. Middleware (uses JWT utilities)
+6. Handlers (uses everything above + sqlc queries)
+7. Routes (wires handlers together)
+8. Update main.go (uses config + routes)
+
 ## Development Workflow
 
 1. Define endpoints in this document
 2. Create handlers in `internal/handlers/`
 3. Register routes in `internal/routes/`
-4. Test with curl/Postman
-5. Update this document with any changes
+4. Test via postman collection
+5. Update doc and miro with changes
