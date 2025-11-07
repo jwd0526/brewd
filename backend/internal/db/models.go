@@ -10,19 +10,96 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Brew struct {
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	BrewMethod *string   `json:"brew_method"`
+	BeanOrigin *string   `json:"bean_origin"`
+	Roaster    *string   `json:"roaster"`
+	Notes      *string   `json:"notes"`
+	CreatedBy  *string   `json:"created_by"`
+	IsPublic   *bool     `json:"is_public"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type Comment struct {
+	ID              string    `json:"id"`
+	PostID          string    `json:"post_id"`
+	ParentCommentID *string   `json:"parent_comment_id"`
+	OwnerID         string    `json:"owner_id"`
+	Content         string    `json:"content"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type CommentLike struct {
+	CommentID string    `json:"comment_id"`
+	UserID    string    `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Medium struct {
+	ID           string    `json:"id"`
+	PostID       string    `json:"post_id"`
+	Url          string    `json:"url"`
+	Type         string    `json:"type"`
+	DisplayOrder *int32    `json:"display_order"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type Notification struct {
+	ID              string    `json:"id"`
+	RecipientUserID string    `json:"recipient_user_id"`
+	ActorUserID     string    `json:"actor_user_id"`
+	Type            string    `json:"type"`
+	ReferenceID     *string   `json:"reference_id"`
+	ReferenceType   *string   `json:"reference_type"`
+	IsRead          *bool     `json:"is_read"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type Post struct {
+	ID          string         `json:"id"`
+	OwnerID     string         `json:"owner_id"`
+	BrewID      *string        `json:"brew_id"`
+	Title       string         `json:"title"`
+	Description *string        `json:"description"`
+	Rating      pgtype.Numeric `json:"rating"`
+	Visibility  *string        `json:"visibility"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+type PostLike struct {
+	PostID    string    `json:"post_id"`
+	UserID    string    `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type PostUserTag struct {
+	PostID    string    `json:"post_id"`
+	UserID    string    `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type User struct {
-	ID            int32              `json:"id"`
-	Email         string             `json:"email"`
-	PasswordHash  string             `json:"password_hash"`
-	FirstName     string             `json:"first_name"`
-	LastName      string             `json:"last_name"`
-	Features      []byte             `json:"features"`
-	Active        *bool              `json:"active"`
-	EmailVerified *bool              `json:"email_verified"`
-	LastLogin     pgtype.Timestamptz `json:"last_login"`
-	CreatedBy     *int32             `json:"created_by"`
-	UpdatedBy     *int32             `json:"updated_by"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
-	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
+	ID                string             `json:"id"`
+	Username          string             `json:"username"`
+	Email             string             `json:"email"`
+	PasswordHash      string             `json:"password_hash"`
+	ProfilePictureUrl *string            `json:"profile_picture_url"`
+	Bio               *string            `json:"bio"`
+	Location          *string            `json:"location"`
+	JoinedAt          pgtype.Timestamptz `json:"joined_at"`
+	CreatedAt         time.Time          `json:"created_at"`
+	UpdatedAt         time.Time          `json:"updated_at"`
+}
+
+type UserFriendship struct {
+	UserID    string    `json:"user_id"`
+	FriendID  string    `json:"friend_id"`
+	Status    *string   `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

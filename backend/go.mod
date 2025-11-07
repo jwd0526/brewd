@@ -5,6 +5,7 @@ go 1.24.3
 require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/jackc/pgx/v5 v5.7.6
+	github.com/shopspring/decimal v1.4.0
 )
 
 require (
