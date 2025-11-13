@@ -1,18 +1,15 @@
 package handlers
 
 import (
-	"crypto/rand"
 	"net/http"
-	"strings"
-	"time"
 
 	"brewd/internal/auth"
 	"brewd/internal/db"
 	"brewd/internal/logger"
+	"brewd/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/oklog/ulid/v2"
 )
 
 // RegisterRequest represents the registration request payload
@@ -55,7 +52,16 @@ func Register(queries *db.Queries, authService auth.AuthService, bcryptCost int)
 
 		ctx := c.Request.Context()
 
-		email := strings.ToLower(strings.TrimSpace(req.Email))
+		if err := utils.ValidatePassword(req.Password); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		email := utils.NormalizeEmail(req.Email)
+		username := utils.NormalizeUsername(req.Username)
 
 		// Check if email is available
 		emailAvailable, err := queries.CheckEmailAvailability(ctx, email)
@@ -76,7 +82,7 @@ func Register(queries *db.Queries, authService auth.AuthService, bcryptCost int)
 		}
 
 		// Check if username is available
-		usernameAvailable, err := queries.CheckUsernameAvailability(ctx, req.Username)
+		usernameAvailable, err := queries.CheckUsernameAvailability(ctx, username)
 		if err != nil {
 			logger.Error("Failed to check username availability", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -104,13 +110,10 @@ func Register(queries *db.Queries, authService auth.AuthService, bcryptCost int)
 			return
 		}
 
-		// Generate ULID for user ID
-		userID := ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader).String()
-
 		// Create user
 		user, err := queries.CreateUser(ctx, db.CreateUserParams{
-			ID:           userID,
-			Username:     req.Username,
+			ID:           utils.GenerateID(),
+			Username:     username,
 			Email:        email,
 			PasswordHash: passwordHash,
 		})
@@ -164,8 +167,8 @@ func Login(queries *db.Queries, authService auth.AuthService) gin.HandlerFunc {
 
 		ctx := c.Request.Context()
 
-		// Normalize email to lowercase
-		email := strings.ToLower(strings.TrimSpace(req.Email))
+		// Normalize email
+		email := utils.NormalizeEmail(req.Email)
 
 		// Get user by email (includes password hash)
 		user, err := queries.GetUserByEmail(ctx, email)

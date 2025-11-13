@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
-	"fmt"
 
 	"brewd/internal/auth"
 	"brewd/internal/config"
