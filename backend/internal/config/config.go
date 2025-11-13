@@ -26,6 +26,7 @@ func LoadConfig() *Config {
 	}
 }
 
+// Retrieve mandatory variables or panic
 func mustGetEnv(key string) string {
 	if val := os.Getenv(key); val == "" {
 		fmt.Fprintf(os.Stderr, "ERROR: Required environment variable not set: %s\n", key)
@@ -35,6 +36,7 @@ func mustGetEnv(key string) string {
 	}
 }
 
+// Retrieve variables (if present) or use defaults
 func getEnvOrDefault(key string, defaultValue string) string {
 	if val := os.Getenv(key); val == "" {
 		fmt.Fprintf(os.Stderr, "WARN: Using default for env var %s: %s\n", key, defaultValue)
@@ -44,6 +46,7 @@ func getEnvOrDefault(key string, defaultValue string) string {
 	}
 }
 
+// Convert string to int
 func strToInt(val string) int {
 	if intVal, err := strconv.Atoi(val); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to convert environment variable to int: %v\n", err)

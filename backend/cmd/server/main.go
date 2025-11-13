@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"brewd/internal/auth"
 	"brewd/internal/config"
 	"brewd/internal/db"
 	"brewd/internal/handlers"
@@ -42,8 +43,9 @@ func main() {
 	queries := db.New(pool)
 	logger.Info("Database connection established")
 
-	// TODO: Pass queries to handlers that need database access
-	_ = queries // Suppress unused variable warning until handlers are implemented
+	// Initialize authentication service
+	authService := auth.NewService(cfg.JWTSecret, cfg.JWTExpirationHrs)
+	logger.Info("Authentication service initialized")
 
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -58,10 +60,33 @@ func main() {
 	// Add logger middleware
 	router.Use(middleware.Logger())
 
-	// Health check endpoint with DB ping
+	// Public routes
 	router.GET("/health", handlers.HealthCheckWithDB(pool))
 
-	// Other endpoints here
+	// Auth routes (public)
+	authGroup := router.Group("/auth")
+	{
+		authGroup.POST("/register", handlers.Register(queries, authService, cfg.BcryptCost))
+		authGroup.POST("/login", handlers.Login(queries, authService))
+	}
+
+	// Protected API routes (require authentication)
+	apiGroup := router.Group("/api")
+	apiGroup.Use(middleware.RequireAuth(authService))
+	{
+		// Get current user
+		apiGroup.GET("/me", func(c *gin.Context) {
+			userID := c.GetString("user_id")
+			username := c.GetString("username")
+			c.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"data": gin.H{
+					"user_id":  userID,
+					"username": username,
+				},
+			})
+		})
+	}
 
 	logger.Info("Starting server", "port", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
