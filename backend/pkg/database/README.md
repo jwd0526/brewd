@@ -616,16 +616,16 @@ func TestDatabaseIntegration(t *testing.T) {
         defer tx.Rollback(context.Background())
         
         _, err = tx.Exec(context.Background(), 
-            "CREATE TEMPORARY TABLE users (id SERIAL PRIMARY KEY, name TEXT)")
+            "CREATE TEMPORARY TABLE user (id SERIAL PRIMARY KEY, name TEXT)")
         require.NoError(t, err)
         
         _, err = tx.Exec(context.Background(), 
-            "INSERT INTO users (name) VALUES ($1)", "Test User")
+            "INSERT INTO user (name) VALUES ($1)", "Test User")
         require.NoError(t, err)
         
         var name string
         err = tx.QueryRow(context.Background(), 
-            "SELECT name FROM users WHERE id = 1").Scan(&name)
+            "SELECT name FROM user WHERE id = 1").Scan(&name)
         require.NoError(t, err)
         assert.Equal(t, "Test User", name)
     })

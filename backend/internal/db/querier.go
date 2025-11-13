@@ -6,13 +6,708 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
-	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserByID(ctx context.Context, id int32) (User, error)
-	UpdateUser(ctx context.Context, arg UpdateUserParams) error
+	// Second query: Create reverse direction
+	AcceptFriendRequestInsert(ctx context.Context, arg AcceptFriendRequestInsertParams) (AcceptFriendRequestInsertRow, error)
+	// ----------------------------------------------------------------------------
+	// 2. ACCEPT FRIEND REQUEST (Use Transaction!)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = requester_user_id, $2 = accepter_user_id
+	// Returns: Both friendship records
+	// Usage: User B accepts User A's request, creating bidirectional friendship
+	//
+	// ⚠️  CRITICAL: These TWO queries MUST be wrapped in a transaction in your application code!
+	// ⚠️  If the UPDATE succeeds but INSERT fails, you'll have inconsistent data.
+	//
+	// Example application code:
+	//   BEGIN;
+	//     [Execute first query]
+	//     [Execute second query]
+	//   COMMIT;
+	// First query: Update the pending request
+	AcceptFriendRequestUpdate(ctx context.Context, arg AcceptFriendRequestUpdateParams) (AcceptFriendRequestUpdateRow, error)
+	// ----------------------------------------------------------------------------
+	// COMMENTS
+	// ----------------------------------------------------------------------------
+	// 9. ADD COMMENT (Top-level)
+	// Parameters: $1 = id (ULID), $2 = post_id, $3 = owner_id, $4 = content
+	// Returns: Created comment record
+	// Usage: User comments on a post
+	// Note: parent_comment_id is NULL for top-level comments
+	AddComment(ctx context.Context, arg AddCommentParams) (AddCommentRow, error)
+	// ----------------------------------------------------------------------------
+	// 9. ADD MEDIA TO POST
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = id (ULID), $2 = post_id, $3 = url, $4 = type, $5 = display_order
+	// Returns: Created media record
+	// Usage: Attach photos/videos to a post
+	AddMediaToPost(ctx context.Context, arg AddMediaToPostParams) (Medium, error)
+	// 10. ADD REPLY (Threaded comment)
+	// Parameters: $1 = id (ULID), $2 = post_id, $3 = parent_comment_id,
+	//             $4 = owner_id, $5 = content
+	// Returns: Created reply record
+	// Usage: User replies to an existing comment
+	AddReply(ctx context.Context, arg AddReplyParams) (AddReplyRow, error)
+	// ----------------------------------------------------------------------------
+	// 9. ARE USERS FRIENDS?
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_a_id, $2 = user_b_id
+	// Returns: Boolean (true if friends, false otherwise)
+	// Usage: Quick check if two users are friends
+	AreUsersFriends(ctx context.Context, arg AreUsersFriendsParams) (bool, error)
+	// ----------------------------------------------------------------------------
+	// 12. BLOCK USER
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = blocker_user_id, $2 = blocked_user_id
+	// Returns: Block record
+	// Usage: User blocks another user
+	// Note: Blocking is ONE-DIRECTIONAL (see user_friendships.sql for details)
+	BlockUser(ctx context.Context, arg BlockUserParams) (BlockUserRow, error)
+	// ----------------------------------------------------------------------------
+	// 9. CHECK EMAIL AVAILABILITY
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = email
+	// Returns: Boolean (true if available, false if taken)
+	// Usage: Real-time validation during registration
+	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
+	// ----------------------------------------------------------------------------
+	// 12. CHECK FOR DUPLICATE NOTIFICATION
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = recipient_user_id, $2 = actor_user_id, $3 = type,
+	//             $4 = reference_id, $5 = hours (e.g., 24)
+	// Returns: Boolean (true if duplicate exists)
+	// Usage: Prevent duplicate notifications within time window
+	// Example: Don't notify twice if same user likes and unlikes quickly
+	CheckForDuplicateNotification(ctx context.Context, arg CheckForDuplicateNotificationParams) (bool, error)
+	// ----------------------------------------------------------------------------
+	// 8. CHECK FRIENDSHIP STATUS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = current_user_id, $2 = other_user_id
+	// Returns: Status ('accepted', 'pending', 'blocked', or NULL if no relationship)
+	// Usage: Determine relationship between two users
+	CheckFriendshipStatus(ctx context.Context, arg CheckFriendshipStatusParams) (*string, error)
+	// 5. CHECK IF USER LIKED POST
+	// Parameters: $1 = post_id, $2 = user_id
+	// Returns: Boolean (true if user liked this post)
+	// Usage: Show liked/unliked state in UI
+	CheckUserLikedPost(ctx context.Context, arg CheckUserLikedPostParams) (bool, error)
+	// ----------------------------------------------------------------------------
+	// 8. CHECK USERNAME AVAILABILITY
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = username
+	// Returns: Boolean (true if available, false if taken)
+	// Usage: Real-time validation during registration
+	CheckUsernameAvailability(ctx context.Context, username string) (bool, error)
+	// ============================================================================
+	// NOTIFICATION QUERIES
+	// ============================================================================
+	// Operations for user notifications: create, fetch, mark as read
+	// ----------------------------------------------------------------------------
+	// 1. CREATE NOTIFICATION
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = id (ULID), $2 = recipient_user_id, $3 = actor_user_id,
+	//             $4 = type, $5 = reference_id, $6 = reference_type
+	// Returns: Created notification record
+	// Usage: Notify user of actions (like, comment, friend request, tag)
+	// Types: 'like', 'comment', 'friend_request', 'tag', 'follow'
+	// Reference types: 'post', 'comment', 'friendship'
+	CreateNotification(ctx context.Context, arg CreateNotificationParams) (Notification, error)
+	// ============================================================================
+	// POST QUERIES
+	// ============================================================================
+	// Operations for posts: create, read, feed generation, and user posts
+	// ----------------------------------------------------------------------------
+	// 1. CREATE POST
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = id (ULID), $2 = owner_id, $3 = brew_id, $4 = title,
+	//             $5 = description, $6 = rating, $7 = visibility
+	// Returns: The created post record
+	// Usage: User creates a new coffee brew post
+	CreatePost(ctx context.Context, arg CreatePostParams) (Post, error)
+	// ============================================================================
+	// USER QUERIES
+	// ============================================================================
+	// Operations for user management: registration, profiles, search, and stats
+	// ----------------------------------------------------------------------------
+	// 1. CREATE USER (Registration)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = id (ULID), $2 = username, $3 = email, $4 = password_hash
+	// Returns: The created user record
+	// Usage: Called during user registration
+	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	// 14. DELETE COMMENT
+	// Parameters: $1 = comment_id
+	// Returns: Deleted comment id
+	// Usage: User deletes their comment
+	// Note: CASCADE will also delete replies (see comment.sql schema)
+	DeleteComment(ctx context.Context, id string) (string, error)
+	// ----------------------------------------------------------------------------
+	// 7. DELETE NOTIFICATION
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = notification_id, $2 = recipient_user_id
+	// Returns: Deleted notification id
+	// Usage: User dismisses a notification
+	// Note: Includes recipient_user_id check for security
+	DeleteNotification(ctx context.Context, arg DeleteNotificationParams) (string, error)
+	// ----------------------------------------------------------------------------
+	// 10. DELETE OLD READ NOTIFICATIONS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = recipient_user_id, $2 = days_old (e.g., 30)
+	// Returns: Number of deleted notifications
+	// Usage: Cleanup old notifications (scheduled job)
+	// Note: Only deletes READ notifications older than X days
+	DeleteOldReadNotifications(ctx context.Context, arg DeleteOldReadNotificationsParams) ([]string, error)
+	// ----------------------------------------------------------------------------
+	// 7. DELETE POST
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = post_id
+	// Returns: Deleted post id
+	// Usage: User deletes their post
+	// Note: CASCADE will also delete related media, likes, comments
+	DeletePost(ctx context.Context, id string) (string, error)
+	// 10. GET ACTIVE USERS
+	// Parameters: $1 = days (time window), $2 = limit
+	// Returns: Most active users by post count in time period
+	// Usage: "Active brewers" leaderboard
+	GetActiveUsers(ctx context.Context, arg GetActiveUsersParams) ([]GetActiveUsersRow, error)
+	// ----------------------------------------------------------------------------
+	// 3. GET ALL NOTIFICATIONS (Read and Unread)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = recipient_user_id, $2 = limit, $3 = offset
+	// Returns: All notifications with actor info, paginated
+	// Usage: Notification history page
+	// Performance: Uses idx_notification_recipient
+	GetAllNotifications(ctx context.Context, arg GetAllNotificationsParams) ([]GetAllNotificationsRow, error)
+	// ----------------------------------------------------------------------------
+	// ENGAGEMENT ANALYTICS
+	// ----------------------------------------------------------------------------
+	// 11. GET AVERAGE ENGAGEMENT BY POST
+	// Parameters: None
+	// Returns: Average likes and comments per post
+	// Usage: Platform health metrics
+	GetAverageEngagementByPost(ctx context.Context) (GetAverageEngagementByPostRow, error)
+	// ----------------------------------------------------------------------------
+	// 14. GET BLOCKED USERS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id (blocker)
+	// Returns: List of users blocked by current user
+	// Usage: Display blocked users list
+	GetBlockedUsers(ctx context.Context, userID string) ([]GetBlockedUsersRow, error)
+	// ----------------------------------------------------------------------------
+	// CONTENT ANALYTICS
+	// ----------------------------------------------------------------------------
+	// 8. GET BREW METHOD DISTRIBUTION
+	// Parameters: None
+	// Returns: Usage statistics by brew method
+	// Usage: "Most popular brew methods" chart
+	GetBrewMethodDistribution(ctx context.Context) ([]GetBrewMethodDistributionRow, error)
+	// 15. GET COMMENT COUNT FOR POST
+	// Parameters: $1 = post_id
+	// Returns: Total number of comments (including replies)
+	// Usage: Display "X comments" on post preview
+	GetCommentCount(ctx context.Context, postID string) (int64, error)
+	// 8. GET COMMENT LIKE COUNT
+	// Parameters: $1 = comment_id
+	// Returns: Number of likes on a comment
+	// Usage: Display like count on comments
+	GetCommentLikeCount(ctx context.Context, commentID string) (int64, error)
+	// 11. GET COMMENTS FOR POST (Top-level only)
+	// Parameters: $1 = post_id
+	// Returns: Top-level comments with user info, reply count, like count
+	// Usage: Display comment section (fetch replies separately)
+	// Performance: Uses idx_comment_post_id and idx_comment_parent_comment_id
+	GetCommentsForPost(ctx context.Context, postID string) ([]GetCommentsForPostRow, error)
+	// 6. GET DAILY ACTIVE USERS
+	// Parameters: $1 = days_back (e.g., 7 for last week)
+	// Returns: Count of users who posted, liked, or commented each day
+	// Usage: DAU/MAU tracking
+	GetDailyActiveUsers(ctx context.Context, dollar_1 interface{}) ([]GetDailyActiveUsersRow, error)
+	// 12. GET ENGAGEMENT RATE BY USER
+	// Parameters: $1 = user_id
+	// Returns: User's posts with engagement metrics
+	// Usage: Show user which posts performed best
+	GetEngagementRateByUser(ctx context.Context, ownerID string) ([]GetEngagementRateByUserRow, error)
+	// ----------------------------------------------------------------------------
+	// 11. GET FRIEND COUNT
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id
+	// Returns: Number of accepted friends
+	// Usage: Display friend count on profile
+	GetFriendCount(ctx context.Context, userID string) (int64, error)
+	// ----------------------------------------------------------------------------
+	// 4. GET FRIEND LIST
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id
+	// Returns: All accepted friends with user details
+	// Usage: Display user's friends list
+	// Performance: Uses idx_user_friendships_status, bidirectional storage makes query simple
+	GetFriendList(ctx context.Context, userID string) ([]GetFriendListRow, error)
+	// 7. GET GROWTH METRICS
+	// Parameters: $1 = days (time window)
+	// Returns: New users, posts, and engagement over time
+	// Usage: Growth tracking dashboard
+	GetGrowthMetrics(ctx context.Context, dollar_1 interface{}) ([]GetGrowthMetricsRow, error)
+	// 15. GET INACTIVE USERS
+	// Parameters: $1 = days_inactive (e.g., 30)
+	// Returns: Users who haven't posted, liked, or commented recently
+	// Usage: Re-engagement campaigns
+	GetInactiveUsers(ctx context.Context, dollar_1 interface{}) ([]GetInactiveUsersRow, error)
+	// ----------------------------------------------------------------------------
+	// 10. GET MEDIA FOR POST
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = post_id
+	// Returns: All media items for a post, ordered by display_order
+	// Usage: Display post images/videos
+	GetMediaForPost(ctx context.Context, postID string) ([]Medium, error)
+	// 13. GET MOST ENGAGING CONTENT
+	// Parameters: $1 = days, $2 = limit
+	// Returns: Posts with highest engagement rate
+	// Usage: Identify viral content
+	GetMostEngagingContent(ctx context.Context, arg GetMostEngagingContentParams) ([]GetMostEngagingContentRow, error)
+	// ----------------------------------------------------------------------------
+	// 10. GET MUTUAL FRIENDS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_a_id, $2 = user_b_id
+	// Returns: Users who are friends with both user A and user B
+	// Usage: Show mutual friends between two users
+	GetMutualFriends(ctx context.Context, arg GetMutualFriendsParams) ([]GetMutualFriendsRow, error)
+	// ----------------------------------------------------------------------------
+	// 11. GET NOTIFICATION WITH DETAILS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = notification_id
+	// Returns: Notification with full context (actor, reference object)
+	// Usage: Display rich notification with post/comment preview
+	// Note: This is a base query - you may need to join additional tables
+	//       based on reference_type (post, comment, etc.)
+	GetNotificationWithDetails(ctx context.Context, id string) (GetNotificationWithDetailsRow, error)
+	// ----------------------------------------------------------------------------
+	// 9. GET NOTIFICATIONS BY TYPE
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = recipient_user_id, $2 = type, $3 = limit, $4 = offset
+	// Returns: Notifications filtered by type
+	// Usage: Filter notifications (e.g., show only 'like' notifications)
+	// Performance: Uses idx_notification_type
+	GetNotificationsByType(ctx context.Context, arg GetNotificationsByTypeParams) ([]GetNotificationsByTypeRow, error)
+	// ----------------------------------------------------------------------------
+	// 5. GET PENDING FRIEND REQUESTS (Incoming)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id (recipient)
+	// Returns: Users who have sent friend requests
+	// Usage: Show incoming friend requests for user to accept/reject
+	// Performance: Uses idx_user_friendships_friend_id
+	GetPendingRequestsReceived(ctx context.Context, friendID string) ([]GetPendingRequestsReceivedRow, error)
+	// ----------------------------------------------------------------------------
+	// 6. GET SENT FRIEND REQUESTS (Outgoing)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id (requester)
+	// Returns: Users to whom current user has sent pending requests
+	// Usage: Show outgoing friend requests (for cancellation)
+	// Performance: Uses idx_user_friendships_user_id
+	GetPendingRequestsSent(ctx context.Context, userID string) ([]GetPendingRequestsSentRow, error)
+	// ----------------------------------------------------------------------------
+	// PLATFORM ANALYTICS
+	// ----------------------------------------------------------------------------
+	// 5. GET PLATFORM OVERVIEW STATS
+	// Parameters: None
+	// Returns: Platform-wide statistics
+	// Usage: Admin dashboard, homepage stats
+	GetPlatformOverviewStats(ctx context.Context) (GetPlatformOverviewStatsRow, error)
+	// ----------------------------------------------------------------------------
+	// POPULAR/TRENDING CONTENT
+	// ----------------------------------------------------------------------------
+	// 7. GET POPULAR BREWS
+	// Parameters: $1 = days (e.g., 30 for last 30 days), $2 = limit
+	// Returns: Most-used brews in time period
+	// Usage: "Trending brews" section
+	// Performance: Uses idx_post_brew_id and idx_post_created_at
+	GetPopularBrews(ctx context.Context, arg GetPopularBrewsParams) ([]GetPopularBrewsRow, error)
+	// 8. GET POPULAR POSTS
+	// Parameters: $1 = days (time window), $2 = limit
+	// Returns: Posts with most engagement (likes + comments)
+	// Usage: "Trending posts" feed
+	// Performance: Aggregates engagement metrics
+	GetPopularPosts(ctx context.Context, arg GetPopularPostsParams) ([]GetPopularPostsRow, error)
+	// 4. GET POST LIKE COUNT
+	// Parameters: $1 = post_id
+	// Returns: Number of likes on a post
+	// Usage: Display like count
+	GetPostLikeCount(ctx context.Context, postID string) (int64, error)
+	// 3. GET USERS WHO LIKED A POST
+	// Parameters: $1 = post_id, $2 = limit, $3 = offset
+	// Returns: List of users who liked this post
+	// Usage: Display "Liked by X, Y, and 23 others"
+	// Performance: Uses idx_post_likes_post_id
+	GetPostLikers(ctx context.Context, arg GetPostLikersParams) ([]GetPostLikersRow, error)
+	// ----------------------------------------------------------------------------
+	// 2. GET SINGLE POST WITH FULL DETAILS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = post_id
+	// Returns: Post with owner info, brew details, media, like count, comment count
+	// Usage: Display detailed post view
+	// Performance: Multiple LEFT JOINs, uses multiple indexes
+	GetPostWithDetails(ctx context.Context, id string) (GetPostWithDetailsRow, error)
+	// ----------------------------------------------------------------------------
+	// 8. GET POSTS BY BREW
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = brew_id, $2 = limit, $3 = offset
+	// Returns: All posts using a specific brew
+	// Usage: View all posts for a particular coffee brew
+	// Performance: Uses idx_post_brew_id
+	GetPostsByBrew(ctx context.Context, arg GetPostsByBrewParams) ([]GetPostsByBrewRow, error)
+	// 20. GET POSTS WHERE USER IS TAGGED
+	// Parameters: $1 = user_id, $2 = limit, $3 = offset
+	// Returns: Posts where user has been tagged
+	// Usage: "Posts you're tagged in" section on profile
+	GetPostsWhereUserIsTagged(ctx context.Context, arg GetPostsWhereUserIsTaggedParams) ([]GetPostsWhereUserIsTaggedRow, error)
+	// ----------------------------------------------------------------------------
+	// 5. GET PUBLIC POSTS (Discovery Feed)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = limit, $2 = offset
+	// Returns: Recent public posts from all users
+	// Usage: Public discovery feed for non-friends
+	// Performance: Uses idx_post_visibility
+	GetPublicPosts(ctx context.Context, arg GetPublicPostsParams) ([]GetPublicPostsRow, error)
+	// 9. GET RATING DISTRIBUTION
+	// Parameters: None
+	// Returns: Count of posts by rating
+	// Usage: Rating distribution chart
+	GetRatingDistribution(ctx context.Context) ([]GetRatingDistributionRow, error)
+	// 13. GET RECENTLY JOINED USERS
+	// Parameters: $1 = days, $2 = limit
+	// Returns: Users who joined recently
+	// Usage: "New to the community" section
+	GetRecentlyJoinedUsers(ctx context.Context, arg GetRecentlyJoinedUsersParams) ([]GetRecentlyJoinedUsersRow, error)
+	// 12. GET REPLIES TO COMMENT
+	// Parameters: $1 = parent_comment_id
+	// Returns: Replies to a specific comment with user info and like count
+	// Usage: Load threaded replies (nested comments)
+	// Performance: Uses idx_comment_parent_comment_id
+	GetRepliesToComment(ctx context.Context, parentCommentID *string) ([]GetRepliesToCommentRow, error)
+	// ----------------------------------------------------------------------------
+	// RECOMMENDATIONS
+	// ----------------------------------------------------------------------------
+	// 11. GET SIMILAR BREWS
+	// Parameters: $1 = brew_id
+	// Returns: Brews with similar characteristics (same method or origin)
+	// Usage: "You might also like" recommendations
+	GetSimilarBrews(ctx context.Context, id string) ([]GetSimilarBrewsRow, error)
+	// 12. GET SUGGESTED FRIENDS
+	// Parameters: $1 = current_user_id, $2 = limit
+	// Returns: Users with mutual friends (friend-of-friend suggestions)
+	// Usage: "People you may know" recommendations
+	GetSuggestedFriends(ctx context.Context, arg GetSuggestedFriendsParams) ([]GetSuggestedFriendsRow, error)
+	// 10. GET TOP CONTRIBUTORS
+	// Parameters: $1 = days (time window), $2 = limit
+	// Returns: Most active users by various metrics
+	// Usage: "Top contributors" leaderboard
+	GetTopContributors(ctx context.Context, arg GetTopContributorsParams) ([]GetTopContributorsRow, error)
+	// 16. GET TOP-LEVEL COMMENT COUNT FOR POST
+	// Parameters: $1 = post_id
+	// Returns: Number of top-level comments only (excludes replies)
+	// Usage: Display "X comments" excluding nested replies
+	GetTopLevelCommentCount(ctx context.Context, postID string) (int64, error)
+	// 9. GET TOP RATED BREWS
+	// Parameters: $1 = minimum_post_count, $2 = limit
+	// Returns: Highest-rated brews with enough posts for statistical validity
+	// Usage: "Best brews" discovery
+	GetTopRatedBrews(ctx context.Context, arg GetTopRatedBrewsParams) ([]GetTopRatedBrewsRow, error)
+	// ----------------------------------------------------------------------------
+	// 8. GET UNREAD NOTIFICATION COUNT
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = recipient_user_id
+	// Returns: Number of unread notifications
+	// Usage: Display badge count on notification bell
+	GetUnreadNotificationCount(ctx context.Context, recipientUserID string) (int64, error)
+	// ----------------------------------------------------------------------------
+	// 2. GET UNREAD NOTIFICATIONS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = recipient_user_id, $2 = limit
+	// Returns: Unread notifications with actor info
+	// Usage: Show notification dropdown/badge
+	// Performance: Uses idx_notification_is_read
+	GetUnreadNotifications(ctx context.Context, arg GetUnreadNotificationsParams) ([]GetUnreadNotificationsRow, error)
+	// ============================================================================
+	// ANALYTICS QUERIES
+	// ============================================================================
+	// Operations for statistics, metrics, and insights
+	// ----------------------------------------------------------------------------
+	// USER ANALYTICS
+	// ----------------------------------------------------------------------------
+	// 1. GET USER ACTIVITY STATS
+	// Parameters: $1 = user_id
+	// Returns: Comprehensive user statistics
+	// Usage: User dashboard, admin analytics, insights page
+	// Note: Uses subqueries to prevent Cartesian product and ensure accurate counts
+	GetUserActivityStats(ctx context.Context, id string) (GetUserActivityStatsRow, error)
+	// ----------------------------------------------------------------------------
+	// 3. GET USER BY EMAIL (Authentication)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = email
+	// Returns: User record including password_hash for authentication
+	// Usage: Login verification (compare hashed passwords)
+	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
+	// ----------------------------------------------------------------------------
+	// 2. GET USER BY ID
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id
+	// Returns: Single user record (excludes password_hash for security)
+	// Usage: View user profiles, verify authentication
+	GetUserByID(ctx context.Context, id string) (GetUserByIDRow, error)
+	// ----------------------------------------------------------------------------
+	// 4. GET USER BY USERNAME
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = username
+	// Returns: Single user record
+	// Usage: View profiles by username, check username availability
+	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
+	// 3. GET USER'S FAVORITE BREW METHODS
+	// Parameters: $1 = user_id
+	// Returns: Brew methods user posts about most
+	// Usage: User preferences insights
+	GetUserFavoriteBrewMethods(ctx context.Context, ownerID string) ([]GetUserFavoriteBrewMethodsRow, error)
+	// ----------------------------------------------------------------------------
+	// 3. GET USER FEED (Posts from Friends)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = current_user_id, $2 = limit, $3 = offset
+	// Returns: Posts from friends, sorted by recency, with pagination
+	// Usage: Main feed feature - see what friends are brewing
+	// Performance: Uses idx_user_friendships_status and idx_post_created_at
+	GetUserFeed(ctx context.Context, arg GetUserFeedParams) ([]GetUserFeedRow, error)
+	// 2. GET USER POSTING ACTIVITY OVER TIME
+	// Parameters: $1 = user_id, $2 = days (e.g., 30)
+	// Returns: Posts per day in time period
+	// Usage: Activity graph on profile
+	GetUserPostingActivityOverTime(ctx context.Context, arg GetUserPostingActivityOverTimeParams) ([]GetUserPostingActivityOverTimeRow, error)
+	// ----------------------------------------------------------------------------
+	// 4. GET USER'S OWN POSTS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = owner_id
+	// Returns: All posts created by a specific user
+	// Usage: User profile page showing their post history
+	// Performance: Uses idx_post_owner_id
+	GetUserPosts(ctx context.Context, ownerID string) ([]GetUserPostsRow, error)
+	// ----------------------------------------------------------------------------
+	// 6. GET USER PROFILE WITH STATS
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id
+	// Returns: User info + post_count, friend_count, avg_rating
+	// Usage: Display rich user profiles with activity statistics
+	// Performance: Uses LEFT JOINs and aggregations, leverages multiple indexes
+	GetUserProfileWithStats(ctx context.Context, id string) (GetUserProfileWithStatsRow, error)
+	// ----------------------------------------------------------------------------
+	// RETENTION & COHORT ANALYSIS
+	// ----------------------------------------------------------------------------
+	// 14. GET USER RETENTION BY COHORT
+	// Parameters: $1 = cohort_month (e.g., '2024-01')
+	// Returns: Users who joined in cohort and posted in subsequent months
+	// Usage: Retention analysis
+	GetUserRetentionByCohort(ctx context.Context, joinedAt pgtype.Timestamptz) ([]GetUserRetentionByCohortRow, error)
+	// 4. GET USER'S TOP BREWS
+	// Parameters: $1 = user_id, $2 = limit
+	// Returns: Brews user has posted about most
+	// Usage: "Your top brews" section
+	GetUserTopBrews(ctx context.Context, arg GetUserTopBrewsParams) ([]GetUserTopBrewsRow, error)
+	// 19. GET USERS TAGGED IN POST
+	// Parameters: $1 = post_id
+	// Returns: List of users tagged in this post
+	// Usage: Display "with X and Y" in post
+	GetUsersTaggedInPost(ctx context.Context, postID string) ([]GetUsersTaggedInPostRow, error)
+	// ----------------------------------------------------------------------------
+	// COMMENT LIKES
+	// ----------------------------------------------------------------------------
+	// 6. LIKE A COMMENT
+	// Parameters: $1 = comment_id, $2 = user_id
+	// Returns: Created like record
+	// Usage: User likes a comment
+	// Note: ON CONFLICT makes this idempotent
+	LikeComment(ctx context.Context, arg LikeCommentParams) (CommentLike, error)
+	// ============================================================================
+	// INTERACTION QUERIES
+	// ============================================================================
+	// Operations for likes and comments on posts and comments
+	// ----------------------------------------------------------------------------
+	// POST LIKES
+	// ----------------------------------------------------------------------------
+	// 1. LIKE A POST
+	// Parameters: $1 = post_id, $2 = user_id
+	// Returns: Created like record
+	// Usage: User likes a post
+	// Note: ON CONFLICT makes this idempotent (can call multiple times safely)
+	LikePost(ctx context.Context, arg LikePostParams) (PostLike, error)
+	// ----------------------------------------------------------------------------
+	// 6. MARK ALL NOTIFICATIONS AS READ
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = recipient_user_id
+	// Returns: Number of updated notifications
+	// Usage: "Mark all as read" button
+	MarkAllNotificationsAsRead(ctx context.Context, recipientUserID string) ([]string, error)
+	// ----------------------------------------------------------------------------
+	// 5. MARK MULTIPLE NOTIFICATIONS AS READ
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = recipient_user_id, $2 = array of notification_ids
+	// Returns: Number of updated notifications
+	// Usage: "Mark all as read" or batch mark
+	// Note: ANY($2) allows passing array of IDs
+	MarkMultipleNotificationsAsRead(ctx context.Context, arg MarkMultipleNotificationsAsReadParams) ([]string, error)
+	// ----------------------------------------------------------------------------
+	// 4. MARK NOTIFICATION AS READ
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = notification_id, $2 = recipient_user_id
+	// Returns: Updated notification
+	// Usage: User clicks on a notification
+	// Note: Includes recipient_user_id check for security
+	MarkNotificationAsRead(ctx context.Context, arg MarkNotificationAsReadParams) (MarkNotificationAsReadRow, error)
+	// ----------------------------------------------------------------------------
+	// 3. REJECT/CANCEL FRIEND REQUEST
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id, $2 = friend_id
+	// Returns: Deleted friendship id
+	// Usage: Reject incoming request or cancel outgoing request
+	RejectFriendRequest(ctx context.Context, arg RejectFriendRequestParams) (RejectFriendRequestRow, error)
+	// ----------------------------------------------------------------------------
+	// BREW SEARCH
+	// ----------------------------------------------------------------------------
+	// 3. SEARCH BREWS
+	// Parameters: $1 = search_term (searches name, brew_method, bean_origin, roaster)
+	// Returns: Matching brews with usage count
+	// Usage: Search for coffee brews
+	// Performance: Uses idx_brew_name and idx_brew_method
+	SearchBrews(ctx context.Context, name string) ([]SearchBrewsRow, error)
+	// 4. SEARCH BREWS BY METHOD
+	// Parameters: $1 = brew_method (exact match)
+	// Returns: All brews using this method
+	// Usage: Filter brews by brewing method
+	// Performance: Uses idx_brew_method
+	SearchBrewsByMethod(ctx context.Context, brewMethod *string) ([]SearchBrewsByMethodRow, error)
+	// 5. SEARCH BREWS BY ROASTER
+	// Parameters: $1 = roaster (case-insensitive)
+	// Returns: All brews from this roaster
+	// Usage: Discover brews from a specific roaster
+	SearchBrewsByRoaster(ctx context.Context, roaster *string) ([]SearchBrewsByRoasterRow, error)
+	// ----------------------------------------------------------------------------
+	// POST SEARCH
+	// ----------------------------------------------------------------------------
+	// 6. SEARCH POSTS
+	// Parameters: $1 = search_term (searches title and description)
+	// Returns: Matching posts with owner and engagement metrics
+	// Usage: Search for specific posts/content
+	SearchPosts(ctx context.Context, title string) ([]SearchPostsRow, error)
+	// ============================================================================
+	// SEARCH & DISCOVERY QUERIES
+	// ============================================================================
+	// Operations for searching users, brews, posts, and discovering popular content
+	// ----------------------------------------------------------------------------
+	// USER SEARCH
+	// ----------------------------------------------------------------------------
+	// 1. SEARCH USERS BY USERNAME
+	// Parameters: $1 = search_term (use '%term%' for contains, 'term%' for starts with)
+	// Returns: Matching users with basic info
+	// Usage: User search bar
+	// Performance: Fast if pattern doesn't start with %, uses idx_user_username
+	SearchUsersByUsername(ctx context.Context, username string) ([]SearchUsersByUsernameRow, error)
+	// ----------------------------------------------------------------------------
+	// 7. SEARCH USERS BY USERNAME
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = search_term (use '%term%' for contains, 'term%' for starts with)
+	// Returns: List of matching users (max 20)
+	// Usage: User search/discovery feature
+	// Performance: Uses idx_user_username, fast if pattern doesn't start with %
+	SearchUsersByUsernameBasic(ctx context.Context, username string) ([]SearchUsersByUsernameBasicRow, error)
+	// 2. SEARCH USERS WITH STATS
+	// Parameters: $1 = search_term
+	// Returns: Matching users with friend/post counts
+	// Usage: Enhanced user search with activity indicators
+	SearchUsersWithStats(ctx context.Context, username string) ([]SearchUsersWithStatsRow, error)
+	// ============================================================================
+	// FRIENDSHIP QUERIES
+	// ============================================================================
+	// Operations for friendships: send requests, accept, list friends, pending requests
+	// NOTE: Uses bidirectional storage model - see user_friendships.sql for details
+	// ----------------------------------------------------------------------------
+	// 1. SEND FRIEND REQUEST
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id (requester), $2 = friend_id (recipient)
+	// Returns: The created friendship record
+	// Usage: User A sends friend request to User B
+	// Note: Creates single 'pending' row, reverse row created on acceptance
+	SendFriendRequest(ctx context.Context, arg SendFriendRequestParams) (SendFriendRequestRow, error)
+	// ----------------------------------------------------------------------------
+	// POST USER TAGS
+	// ----------------------------------------------------------------------------
+	// 17. TAG USER IN POST
+	// Parameters: $1 = post_id, $2 = user_id
+	// Returns: Created tag record
+	// Usage: Tag a friend in a coffee post
+	// Note: Should trigger notification (see notification.sql)
+	TagUserInPost(ctx context.Context, arg TagUserInPostParams) (PostUserTag, error)
+	// ----------------------------------------------------------------------------
+	// 13. UNBLOCK USER
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = blocker_user_id, $2 = blocked_user_id
+	// Returns: Deleted block record
+	// Usage: User unblocks another user
+	UnblockUser(ctx context.Context, arg UnblockUserParams) (UnblockUserRow, error)
+	// ----------------------------------------------------------------------------
+	// 7. UNFRIEND (Use Transaction!)
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_a_id, $2 = user_b_id
+	// Returns: Number of deleted rows (should be 2)
+	// Usage: Remove friendship between two users
+	//
+	// ⚠️  CRITICAL: This query MUST be wrapped in a transaction in your application code!
+	// ⚠️  If only one row is deleted due to error, you'll have inconsistent data.
+	//
+	// Example application code:
+	//   BEGIN;
+	//     [Execute DELETE query]
+	//     [Verify 2 rows affected]
+	//   COMMIT;
+	Unfriend(ctx context.Context, arg UnfriendParams) error
+	// 7. UNLIKE A COMMENT
+	// Parameters: $1 = comment_id, $2 = user_id
+	// Returns: Deleted like record
+	// Usage: User removes their like from a comment
+	UnlikeComment(ctx context.Context, arg UnlikeCommentParams) (UnlikeCommentRow, error)
+	// 2. UNLIKE A POST
+	// Parameters: $1 = post_id, $2 = user_id
+	// Returns: Deleted like record
+	// Usage: User removes their like from a post
+	UnlikePost(ctx context.Context, arg UnlikePostParams) (UnlikePostRow, error)
+	// 18. UNTAG USER FROM POST
+	// Parameters: $1 = post_id, $2 = user_id
+	// Returns: Deleted tag record
+	// Usage: Remove tag from post
+	UntagUserFromPost(ctx context.Context, arg UntagUserFromPostParams) (UntagUserFromPostRow, error)
+	// 13. UPDATE COMMENT
+	// Parameters: $1 = comment_id, $2 = content
+	// Returns: Updated comment record
+	// Usage: User edits their comment
+	UpdateComment(ctx context.Context, arg UpdateCommentParams) (UpdateCommentRow, error)
+	// ----------------------------------------------------------------------------
+	// 10. UPDATE PASSWORD
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id, $2 = new_password_hash
+	// Returns: Success confirmation
+	// Usage: Password reset/change functionality
+	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (UpdatePasswordRow, error)
+	// ----------------------------------------------------------------------------
+	// 6. UPDATE POST
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = post_id, $2 = title, $3 = description, $4 = rating, $5 = visibility
+	// Returns: Updated post record
+	// Usage: User edits their post
+	UpdatePost(ctx context.Context, arg UpdatePostParams) (Post, error)
+	// ----------------------------------------------------------------------------
+	// 5. UPDATE USER PROFILE
+	// ----------------------------------------------------------------------------
+	// Parameters: $1 = user_id, $2 = profile_picture_url, $3 = bio, $4 = location
+	// Returns: Updated user record
+	// Usage: User edits their profile
+	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (UpdateUserProfileRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

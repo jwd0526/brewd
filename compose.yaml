@@ -21,6 +21,18 @@ services:
       start_period: 80s
     networks:
       - brewd-network
+  migrate:
+    container_name: brewd-migrate
+    image: migrate/migrate:latest
+    volumes:
+      - ./backend/db/migrations:/migrations
+    command: ["-path", "/migrations", "-database", "postgres://admin:admin@db:5432/brewd-db?sslmode=disable", "up"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - brewd-network
+    restart: "no"
   backend:
     container_name: brewd-backend
     build:
@@ -31,15 +43,25 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: admin
-      DB_PASSWORD: admin
-      DB_NAME: brewd-db
-      GIN_MODE: release
+      # Database connection (managed by pkg/database)
+      DATABASE_URL: postgres://admin:admin@db:5432/brewd-db?sslmode=disable
+
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
+      JWT_EXPIRATION_HRS: ${JWT_EXPIRATION_HRS:-24}
+
+      # Server configuration
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      PORT: ${PORT:-8080}
+
+      # Bcrypt cost for password hashing
+      BCRYPT_COST: 10
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
