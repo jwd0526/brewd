@@ -3,9 +3,9 @@ package middleware
 import (
 	"time"
 
+	"brewd/internal/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"brewd/internal/logger"
 )
 
 // Returns a Gin middleware that logs HTTP requests and responses

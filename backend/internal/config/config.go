@@ -1,8 +1,8 @@
 package config
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"strconv"
 )
 
@@ -15,25 +15,41 @@ type Config struct {
 	JWTExpirationHrs int
 }
 
-func LoadConfig() *Config {
+func LoadConfig() (*Config, error) {
+	jwtSecret, err := mustGetEnv("JWT_SECRET")
+	if err != nil {
+		return nil, err
+	}
+
+	bcryptCostStr := getEnvOrDefault("BCRYPT_COST", "10")
+	bcryptCost, err := strToInt(bcryptCostStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid BCRYPT_COST value '%s': %w", bcryptCostStr, err)
+	}
+
+	jwtExpirationStr := getEnvOrDefault("JWT_EXPIRATION_HRS", "24")
+	jwtExpiration, err := strToInt(jwtExpirationStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid JWT_EXPIRATION_HRS value '%s': %w", jwtExpirationStr, err)
+	}
+
 	return &Config{
-		JWTSecret:        mustGetEnv("JWT_SECRET"),
+		JWTSecret:        jwtSecret,
 		Environment:      getEnvOrDefault("ENVIRONMENT", "development"),
 		LogLevel:         getEnvOrDefault("LOG_LEVEL", "INFO"),
 		Port:             getEnvOrDefault("PORT", "8080"),
-		BcryptCost:       strToInt(getEnvOrDefault("BCRYPT_COST", "10")),
-		JWTExpirationHrs: strToInt(getEnvOrDefault("JWT_EXPIRATION_HRS", "24")),
-	}
+		BcryptCost:       bcryptCost,
+		JWTExpirationHrs: jwtExpiration,
+	}, nil
 }
 
-// Retrieve mandatory variables or panic
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); val == "" {
-		fmt.Fprintf(os.Stderr, "ERROR: Required environment variable not set: %s\n", key)
-		panic(fmt.Sprintf("Missing required env var: %s", key))
-	} else {
-		return val
+// Retrieve mandatory variables or return error
+func mustGetEnv(key string) (string, error) {
+	val := os.Getenv(key)
+	if val == "" {
+		return "", fmt.Errorf("required environment variable not set: %s", key)
 	}
+	return val, nil
 }
 
 // Retrieve variables (if present) or use defaults
@@ -47,11 +63,10 @@ func getEnvOrDefault(key string, defaultValue string) string {
 }
 
 // Convert string to int
-func strToInt(val string) int {
-	if intVal, err := strconv.Atoi(val); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: Failed to convert environment variable to int: %v\n", err)
-		panic(err)
-	} else {
-		return intVal
+func strToInt(val string) (int, error) {
+	intVal, err := strconv.Atoi(val)
+	if err != nil {
+		return 0, fmt.Errorf("failed to convert to int: %w", err)
 	}
+	return intVal, nil
 }

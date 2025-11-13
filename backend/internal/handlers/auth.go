@@ -30,7 +30,7 @@ type LoginRequest struct {
 
 // AuthResponse represents the authentication response
 type AuthResponse struct {
-	Token string `json:"token"`
+	Token string   `json:"token"`
 	User  UserInfo `json:"user"`
 }
 
@@ -55,8 +55,10 @@ func Register(queries *db.Queries, authService auth.AuthService, bcryptCost int)
 
 		ctx := c.Request.Context()
 
+		email := strings.ToLower(strings.TrimSpace(req.Email))
+
 		// Check if email is available
-		emailAvailable, err := queries.CheckEmailAvailability(ctx, req.Email)
+		emailAvailable, err := queries.CheckEmailAvailability(ctx, email)
 		if err != nil {
 			logger.Error("Failed to check email availability", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -109,7 +111,7 @@ func Register(queries *db.Queries, authService auth.AuthService, bcryptCost int)
 		user, err := queries.CreateUser(ctx, db.CreateUserParams{
 			ID:           userID,
 			Username:     req.Username,
-			Email:        req.Email,
+			Email:        email,
 			PasswordHash: passwordHash,
 		})
 		if err != nil {

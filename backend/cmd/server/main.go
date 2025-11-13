@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"fmt"
 
 	"brewd/internal/auth"
 	"brewd/internal/config"
@@ -12,13 +13,18 @@ import (
 	"brewd/internal/handlers"
 	"brewd/internal/logger"
 	"brewd/internal/middleware"
+	"brewd/internal/routes"
 	"brewd/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	cfg := config.LoadConfig()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: %v\n", err)
+		os.Exit(1)
+	}
 	logger.Init(cfg.LogLevel)
 
 	// Initialize database connection
@@ -60,33 +66,10 @@ func main() {
 	// Add logger middleware
 	router.Use(middleware.Logger())
 
-	// Public routes
 	router.GET("/health", handlers.HealthCheckWithDB(pool))
 
-	// Auth routes (public)
-	authGroup := router.Group("/auth")
-	{
-		authGroup.POST("/register", handlers.Register(queries, authService, cfg.BcryptCost))
-		authGroup.POST("/login", handlers.Login(queries, authService))
-	}
-
-	// Protected API routes (require authentication)
-	apiGroup := router.Group("/api")
-	apiGroup.Use(middleware.RequireAuth(authService))
-	{
-		// Get current user
-		apiGroup.GET("/me", func(c *gin.Context) {
-			userID := c.GetString("user_id")
-			username := c.GetString("username")
-			c.JSON(http.StatusOK, gin.H{
-				"success": true,
-				"data": gin.H{
-					"user_id":  userID,
-					"username": username,
-				},
-			})
-		})
-	}
+	// Routes
+	routes.RegisterRoutes(router, queries, authService, cfg)
 
 	logger.Info("Starting server", "port", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {

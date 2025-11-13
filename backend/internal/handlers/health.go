@@ -28,11 +28,11 @@ func HealthCheckWithDB(pool *database.Pool) gin.HandlerFunc {
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"success": false,
 				"data": gin.H{
-					"api_status": "healthy",
-					"db_status":  "unhealthy",
-					"db_error":   healthStatus.Error,
+					"api_status":       "healthy",
+					"db_status":        "unhealthy",
+					"db_error":         healthStatus.Error,
 					"response_time_ms": healthStatus.ResponseTime.Milliseconds(),
-					"pool_stats": healthStatus.Stats,
+					"pool_stats":       healthStatus.Stats,
 				},
 			})
 			return
@@ -42,10 +42,10 @@ func HealthCheckWithDB(pool *database.Pool) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"data": gin.H{
-				"api_status": "healthy",
-				"db_status":  "healthy",
+				"api_status":       "healthy",
+				"db_status":        "healthy",
 				"response_time_ms": healthStatus.ResponseTime.Milliseconds(),
-				"pool_stats": healthStatus.Stats,
+				"pool_stats":       healthStatus.Stats,
 			},
 		})
 	}
