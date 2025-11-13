@@ -52,7 +52,7 @@ func main() {
 	}
 
 	// Create router
-	router := gin.Default()
+	router := gin.New()
 
 	// Add recovery middleware first to catch panics
 	router.Use(gin.Recovery())
